@@ -1,8 +1,8 @@
 //
 //  ShuttersView.swift
-//  EssensysApp
+//  essensys-iphone
 //
-//  Created by Nicolas Rineau on 03/01/2026.
+//  Created by ANTIGRAVITY on 2026-01-04.
 //
 
 import SwiftUI
@@ -10,145 +10,143 @@ import SwiftUI
 struct ShutterItem: Identifiable {
     let id = UUID()
     let name: String
-    let activeIndex: Int // Index pour activer (monter/descendre) est souvent le même, la valeur change ou l'inverse
-    let upValue: String
-    let downValue: String
-    let stopValue: String
-}
-
-// Données des volets (Exemple - À ADAPTER avec les vrais indices)
-struct ShuttersData {
-    static let shutters: [String: [ShutterItem]] = [
-        "Salon": [
-            ShutterItem(name: "Baie Vitrée", activeIndex: 600, upValue: "1", downValue: "2", stopValue: "0"),
-            ShutterItem(name: "Fenêtre", activeIndex: 600, upValue: "4", downValue: "8", stopValue: "0")
-        ],
-        "Chambres": [
-            ShutterItem(name: "Grande Chambre", activeIndex: 601, upValue: "1", downValue: "2", stopValue: "0"),
-            ShutterItem(name: "Petite Chambre", activeIndex: 601, upValue: "4", downValue: "8", stopValue: "0")
-        ],
-        "Cuisine": [
-            ShutterItem(name: "Cuisine", activeIndex: 602, upValue: "1", downValue: "2", stopValue: "0")
-        ]
-    ]
-    
-    // Ordre d'affichage des pièces
-    static let roomsOrder = ["Salon", "Cuisine", "Chambres"]
+    let label: String
+    let openIndex: Int
+    let closeIndex: Int
+    let value: String
 }
 
 struct ShuttersView: View {
     @EnvironmentObject var connectionManager: ConnectionManager
-    @State private var lastAction: String = ""
+    @State private var errorMessage = ""
+    @State private var showingError = false
+    
+    // Données provenant de ShutterControl.tsx (Frontend)
+    let shutters: [ShutterItem] = [
+        ShutterItem(name: "volet1salon", label: "Volet 1 Salon", openIndex: 617, closeIndex: 620, value: "1"),
+        ShutterItem(name: "volet2salon", label: "Volet 2 Salon", openIndex: 617, closeIndex: 620, value: "2"),
+        ShutterItem(name: "volet3salon", label: "Volet 3 Salon", openIndex: 617, closeIndex: 620, value: "4"),
+        ShutterItem(name: "volet1salleamanger", label: "Volet 1 Salle à Manger", openIndex: 617, closeIndex: 620, value: "8"),
+        ShutterItem(name: "volet2salleamanger", label: "Volet 2 Salle à Manger", openIndex: 617, closeIndex: 620, value: "16"),
+        ShutterItem(name: "volet1cuisine", label: "Volet 1 Cuisine", openIndex: 619, closeIndex: 622, value: "1"),
+        ShutterItem(name: "volet2cuisine", label: "Volet 2 Cuisine", openIndex: 619, closeIndex: 622, value: "2"),
+        ShutterItem(name: "voletsdb", label: "Volet Salle de Bain 1", openIndex: 619, closeIndex: 622, value: "4"),
+        ShutterItem(name: "volet1gdchamb", label: "Volet 1 Grande Chambre", openIndex: 618, closeIndex: 621, value: "1"),
+        ShutterItem(name: "volet2gdchamb", label: "Volet 2 Grande Chambre", openIndex: 618, closeIndex: 621, value: "2"),
+        ShutterItem(name: "volet1ptchamb", label: "Volet Petite Chambre 1", openIndex: 618, closeIndex: 621, value: "4"),
+        ShutterItem(name: "volet2ptchamb", label: "Volet Petite Chambre 2", openIndex: 618, closeIndex: 621, value: "8"),
+        ShutterItem(name: "volet3ptchamb", label: "Volet Petite Chambre 3", openIndex: 618, closeIndex: 621, value: "16"),
+        ShutterItem(name: "voletbureau", label: "Volet Bureau", openIndex: 617, closeIndex: 620, value: "32")
+    ]
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Header du tab
-                HStack {
-                    Image(systemName: "blinds.horizontal.closed")
-                        .font(.title)
-                        .foregroundColor(.blue)
-                    Text("Volets")
-                        .font(.title)
-                        .fontWeight(.bold)
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top)
+        NavigationView {
+            VStack(spacing: 0) {
+                // Bannière d'information
+                InfoBanner()
+                    .padding()
                 
-                LazyVStack(spacing: 15) {
-                    ForEach(ShuttersData.roomsOrder, id: \.self) { room in
-                        if let shutters = ShuttersData.shutters[room] {
-                            ShutterRoomCard(roomName: room, shutters: shutters, lastAction: $lastAction)
+                // Contrôles globaux
+                HStack(spacing: 20) {
+                    Button(action: { openAll() }) {
+                        VStack {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.title)
+                            Text("Tout Ouvrir")
+                                .font(.caption)
                         }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.green)
+                    
+                    Button(action: { closeAll() }) {
+                        VStack {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .font(.title)
+                            Text("Tout Fermer")
+                                .font(.caption)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
                 }
-                .padding()
-            }
-        }
-        .background(Color(.systemGray6).opacity(0.3))
-    }
-}
-
-struct ShutterRoomCard: View {
-    let roomName: String
-    let shutters: [ShutterItem]
-    @Binding var lastAction: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(roomName)
-                .font(.headline)
-                .foregroundColor(.secondary)
-            
-            VStack(spacing: 1) {
-                ForEach(shutters) { shutter in
+                .padding(.vertical)
+                
+                List(shutters) { shutter in
                     HStack {
-                        Text(shutter.name)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(hex: "2D3748"))
+                        Text(shutter.label)
+                            .font(.body)
                         
                         Spacer()
                         
-                        HStack(spacing: 15) {
-                            // Bouton Monter
-                            ShutterButton(icon: "arrow.up", color: .blue) {
-                                sendCommand(shutter: shutter, value: shutter.upValue, action: "Monter")
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                moveShutter(shutter, open: true)
+                            }) {
+                                Image(systemName: "arrow.up")
+                                    .padding(8)
+                                    .background(Color.green.opacity(0.1))
+                                    .clipShape(Circle())
                             }
                             
-                            // Bouton Stop
-                            ShutterButton(icon: "square.fill", color: .gray) {
-                                sendCommand(shutter: shutter, value: shutter.stopValue, action: "Stop")
-                            }
-                            
-                            // Bouton Descendre
-                            ShutterButton(icon: "arrow.down", color: .blue) {
-                                sendCommand(shutter: shutter, value: shutter.downValue, action: "Descendre")
+                            Button(action: {
+                                moveShutter(shutter, open: false)
+                            }) {
+                                Image(systemName: "arrow.down")
+                                    .padding(8)
+                                    .background(Color.blue.opacity(0.1))
+                                    .clipShape(Circle())
                             }
                         }
                     }
-                    .padding()
-                    .background(Color.white)
-                    
-                    if shutter.id != shutters.last?.id {
-                        Divider()
-                            .padding(.leading)
-                    }
+                    .padding(.vertical, 4)
                 }
+                .listStyle(.plain)
             }
-            .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+            .navigationTitle("Volets")
+            .alert("Erreur", isPresented: $showingError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
     
-    func sendCommand(shutter: ShutterItem, value: String, action: String) {
-        EssensysAPI.shared.sendInjection(k: shutter.activeIndex, v: value) { result in
+    private func moveShutter(_ shutter: ShutterItem, open: Bool) {
+        let k = open ? shutter.openIndex : shutter.closeIndex
+        let v = shutter.value
+        
+        EssensysAPI.shared.sendInjection(k: k, v: v) { result in
             DispatchQueue.main.async {
                 switch result {
                 case .success:
-                    lastAction = "\(action) \(shutter.name) envoyé à \(Date())"
-                    print("Commande volet envoyée: \(shutter.name) - \(action)")
+                    break
                 case .failure(let error):
-                    lastAction = "Erreur: \(error.localizedDescription)"
+                    errorMessage = error.localizedDescription
+                    showingError = true
                 }
             }
         }
     }
-}
-
-struct ShutterButton: View {
-    let icon: String
-    let color: Color
-    let action: () -> Void
     
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.body)
-                .frame(width: 40, height: 40)
-                .background(color.opacity(0.1))
-                .foregroundColor(color)
-                .cornerRadius(8)
+    // Helper pour tout ouvrir/fermer (injections séquentielles pour ne pas saturer)
+    private func openAll() {
+        let group = DispatchGroup()
+        for shutter in shutters {
+            group.enter()
+            EssensysAPI.shared.sendInjection(k: shutter.openIndex, v: shutter.value) { _ in
+                group.leave()
+            }
+        }
+    }
+    
+    private func closeAll() {
+        let group = DispatchGroup()
+        for shutter in shutters {
+            group.enter()
+            EssensysAPI.shared.sendInjection(k: shutter.closeIndex, v: shutter.value) { _ in
+                group.leave()
+            }
         }
     }
 }
