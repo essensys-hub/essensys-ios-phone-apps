@@ -53,6 +53,10 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>L'application doit accéder au réseau local pour communiquer avec le serveur Essensys (Raspberry Pi).</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
 
