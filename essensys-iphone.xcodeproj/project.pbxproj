@@ -6,6 +6,17 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CCEB5EFE2F09919C00C0A697 /* ConnectionConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EF42F09919C00C0A697 /* ConnectionConfig.swift */; };
+		CCEB5EFF2F09919C00C0A697 /* AlarmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EF92F09919C00C0A697 /* AlarmView.swift */; };
+		CCEB5F002F09919C00C0A697 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EFB2F09919C00C0A697 /* HomeView.swift */; };
+		CCEB5F012F09919C00C0A697 /* EssensysAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EF72F09919C00C0A697 /* EssensysAPI.swift */; };
+		CCEB5F022F09919C00C0A697 /* LightingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EFC2F09919C00C0A697 /* LightingView.swift */; };
+		CCEB5F032F09919C00C0A697 /* ConfigurationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EFA2F09919C00C0A697 /* ConfigurationView.swift */; };
+		CCEB5F042F09919C00C0A697 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EF62F09919C00C0A697 /* ConnectionManager.swift */; };
+		CCEB5F052F09919C00C0A697 /* ShuttersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5F062F09919C00C0A697 /* ShuttersView.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		CC3222682F098A23004DF5DE /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +38,14 @@
 		CC3222572F098A21004DF5DE /* essensys-iphone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "essensys-iphone.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC3222672F098A23004DF5DE /* essensys-iphoneTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "essensys-iphoneTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC3222712F098A23004DF5DE /* essensys-iphoneUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "essensys-iphoneUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CCEB5EF42F09919C00C0A697 /* ConnectionConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionConfig.swift; sourceTree = "<group>"; };
+		CCEB5EF62F09919C00C0A697 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
+		CCEB5EF72F09919C00C0A697 /* EssensysAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EssensysAPI.swift; sourceTree = "<group>"; };
+		CCEB5EF92F09919C00C0A697 /* AlarmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmView.swift; sourceTree = "<group>"; };
+		CCEB5EFA2F09919C00C0A697 /* ConfigurationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationView.swift; sourceTree = "<group>"; };
+		CCEB5EFB2F09919C00C0A697 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		CCEB5EFC2F09919C00C0A697 /* LightingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightingView.swift; sourceTree = "<group>"; };
+		CCEB5F062F09919C00C0A697 /* ShuttersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuttersView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +94,9 @@
 		CC32224E2F098A21004DF5DE = {
 			isa = PBXGroup;
 			children = (
+				CCEB5EF52F09919C00C0A697 /* Models */,
+				CCEB5EF82F09919C00C0A697 /* Services */,
+				CCEB5EFD2F09919C00C0A697 /* Views */,
 				CC3222592F098A21004DF5DE /* essensys-iphone */,
 				CC32226A2F098A23004DF5DE /* essensys-iphoneTests */,
 				CC3222742F098A23004DF5DE /* essensys-iphoneUITests */,
@@ -90,6 +112,35 @@
 				CC3222712F098A23004DF5DE /* essensys-iphoneUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		CCEB5EF52F09919C00C0A697 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				CCEB5EF42F09919C00C0A697 /* ConnectionConfig.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		CCEB5EF82F09919C00C0A697 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				CCEB5EF62F09919C00C0A697 /* ConnectionManager.swift */,
+				CCEB5EF72F09919C00C0A697 /* EssensysAPI.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		CCEB5EFD2F09919C00C0A697 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				CCEB5EF92F09919C00C0A697 /* AlarmView.swift */,
+				CCEB5EFA2F09919C00C0A697 /* ConfigurationView.swift */,
+				CCEB5EFB2F09919C00C0A697 /* HomeView.swift */,
+				CCEB5EFC2F09919C00C0A697 /* LightingView.swift */,
+				CCEB5F062F09919C00C0A697 /* ShuttersView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -236,6 +287,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CCEB5EFE2F09919C00C0A697 /* ConnectionConfig.swift in Sources */,
+				CCEB5EFF2F09919C00C0A697 /* AlarmView.swift in Sources */,
+				CCEB5F002F09919C00C0A697 /* HomeView.swift in Sources */,
+				CCEB5F012F09919C00C0A697 /* EssensysAPI.swift in Sources */,
+				CCEB5F022F09919C00C0A697 /* LightingView.swift in Sources */,
+				CCEB5F032F09919C00C0A697 /* ConfigurationView.swift in Sources */,
+				CCEB5F042F09919C00C0A697 /* ConnectionManager.swift in Sources */,
+				CCEB5F052F09919C00C0A697 /* ShuttersView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -396,8 +455,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"essensys-iphone/Preview Content\"";
+				DEVELOPMENT_TEAM = J32285QB9J;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ../Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -424,8 +485,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"essensys-iphone/Preview Content\"";
+				DEVELOPMENT_TEAM = J32285QB9J;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ../Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

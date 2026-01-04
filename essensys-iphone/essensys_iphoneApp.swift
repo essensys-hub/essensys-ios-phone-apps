@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct essensys_iphoneApp: App {
+    @StateObject private var connectionManager = ConnectionManager.shared
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(connectionManager)
         }
     }
 }
