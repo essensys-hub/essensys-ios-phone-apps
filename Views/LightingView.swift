@@ -12,71 +12,78 @@ struct LightingView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
     
-    // Grouper les pièces par catégorie
-    private var roomsByCategory: [String: [RoomLighting]] {
-        Dictionary(grouping: LightingData.rooms) { room in
-            if room.roomName.contains("Chambre") {
-                return "Chambres"
-            } else if room.roomName.contains("Bureau") {
-                return "Bureau"
-            } else if room.roomName.contains("Bain") {
-                return "Salles de bain"
-            } else if room.roomName.contains("WC") {
-                return "Toilettes"
-            } else if room.roomName.contains("Annexe") {
-                return "Annexes"
-            } else if room.roomName.contains("Escalier") {
-                return "Escalier"
-            } else {
-                return "Autres"
-            }
-        }
-    }
+    // Persistence de l'ordre des pièces (via UUID strings)
+    @AppStorage("LightingView.roomOrder") private var savedRoomOrderString: String = ""
     
-    private var categoryOrder: [String] {
-        ["Chambres", "Bureau", "Salles de bain", "Toilettes", "Annexes", "Escalier", "Autres"]
-    }
+    // État local des pièces (pour le reordering)
+    @State private var rooms: [RoomLighting] = []
+    
+    // État d'expansion global (UUID des pièces ouvertes)
+    // Par défaut vide = tout fermé
+    @State private var expandedRoomIds: Set<UUID> = []
+    
+    // Mode édition pour le reordering
+    @State private var isEditing = false
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Bannière d'information
-                    InfoBanner()
+            VStack(spacing: 0) {
+                // Bannière d'information
+                InfoBanner()
+                    .padding()
+                
+                // Contrôles globaux
+                HStack {
+                    Button("Tout ouvrir") {
+                        expandAll()
+                    }
+                    .font(.caption)
+                    .buttonStyle(.bordered)
                     
-                    // Groupes de pièces
-                    ForEach(categoryOrder, id: \.self) { category in
-                        if let rooms = roomsByCategory[category], !rooms.isEmpty {
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Text(category)
-                                        .font(.headline)
-                                    Spacer()
-                                    Text("\(rooms.count) pièce\(rooms.count > 1 ? "s" : "")")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.horizontal)
-                                
-                                ForEach(rooms) { room in
-                                    RoomLightingCard(room: room) { error in
-                                        errorMessage = error
-                                        showingError = true
+                    Button("Tout fermer") {
+                        collapseAll()
+                    }
+                    .font(.caption)
+                    .buttonStyle(.bordered)
+                    
+                    Spacer()
+                    
+                    EditButton() // Bouton natif SwiftUI pour activer le mode édition de la liste
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+                
+                List {
+                    ForEach(rooms) { room in
+                        RoomLightingCard(
+                            room: room,
+                            isExpanded: Binding(
+                                get: { expandedRoomIds.contains(room.id) },
+                                set: { isExpanded in
+                                    if isExpanded {
+                                        expandedRoomIds.insert(room.id)
+                                    } else {
+                                        expandedRoomIds.remove(room.id)
                                     }
                                 }
+                            ),
+                            onError: { error in
+                                errorMessage = error
+                                showingError = true
                             }
-                        }
+                        )
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        .listRowBackground(Color.clear)
                     }
-                    
-                    // Notifications
-                    NotificationsSection()
-                    
-                    // Actions précédentes
-                    PreviousActionsSection()
+                    .onMove(perform: move)
                 }
-                .padding()
+                .listStyle(.plain)
             }
             .navigationTitle("Éclairage")
+            .onAppear {
+                loadRooms()
+            }
             .alert("Erreur", isPresented: $showingError) {
                 Button("OK", role: .cancel) { }
             } message: {
@@ -84,12 +91,88 @@ struct LightingView: View {
             }
         }
     }
+    
+    private func loadRooms() {
+        let allRooms = LightingData.rooms
+        
+        if savedRoomOrderString.isEmpty {
+            // Premier lancement ou pas de sauvegarde : ordre par défaut (catégorisé si possible, ou juste liste)
+            // Ici on va prendre l'ordre par défaut de LightingData mais on pourrait appliquer le tri par catégorie existant avant
+            // Pour simplifier et respecter "par défaut", on prend la liste telle quelle,
+            // ou on peut pré-trier par catégorie comme avant si l'utilisateur n'a jamais touché.
+            // Reprenons le tri par catégorie initial pour la première vue :
+            rooms = sortByDefaultCategories(allRooms)
+        } else {
+            // Charger l'ordre sauvegardé
+            let savedIds = savedRoomOrderString.split(separator: ",").map { String($0) }
+            
+            // Reconstruire la liste dans l'ordre
+            var orderedRooms: [RoomLighting] = []
+            var remainingRooms = allRooms
+            
+            for idStr in savedIds {
+                if let index = remainingRooms.firstIndex(where: { $0.id.uuidString == idStr }) {
+                    orderedRooms.append(remainingRooms[index])
+                    remainingRooms.remove(at: index)
+                }
+            }
+            
+            // Ajouter les pièces manquantes (nouvelles pièces ajoutées dans le code par ex) à la fin
+            orderedRooms.append(contentsOf: remainingRooms)
+            rooms = orderedRooms
+        }
+    }
+    
+    private func sortByDefaultCategories(_ rooms: [RoomLighting]) -> [RoomLighting] {
+        // Logique de tri par catégorie initiale pour avoir une vue propre au premier lancement
+        let categoryOrder = ["Chambres", "Bureau", "Salles de bain", "Toilettes", "Annexes", "Escalier", "Autres"]
+        var sorted: [RoomLighting] = []
+        
+        for category in categoryOrder {
+            let categoryRooms = rooms.filter { room in
+                getCategory(for: room) == category
+            }
+            sorted.append(contentsOf: categoryRooms)
+        }
+        
+        return sorted
+    }
+    
+    private func getCategory(for room: RoomLighting) -> String {
+        if room.roomName.contains("Chambre") { return "Chambres" }
+        if room.roomName.contains("Bureau") { return "Bureau" }
+        if room.roomName.contains("Bain") { return "Salles de bain" }
+        if room.roomName.contains("WC") { return "Toilettes" }
+        if room.roomName.contains("Annexe") { return "Annexes" }
+        if room.roomName.contains("Escalier") { return "Escalier" }
+        return "Autres"
+    }
+    
+    private func saveOrder() {
+        let ids = rooms.map { $0.id.uuidString }
+        savedRoomOrderString = ids.joined(separator: ",")
+    }
+    
+    private func move(from source: IndexSet, to destination: Int) {
+        rooms.move(fromOffsets: source, toOffset: destination)
+        saveOrder()
+    }
+    
+    private func expandAll() {
+        for room in rooms {
+            expandedRoomIds.insert(room.id)
+        }
+    }
+    
+    private func collapseAll() {
+        expandedRoomIds.removeAll()
+    }
 }
 
 struct RoomLightingCard: View {
     let room: RoomLighting
+    @Binding var isExpanded: Bool
     let onError: (String) -> Void
-    @State private var expanded = true  // Ouvrir par défaut pour voir toutes les lampes
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -120,7 +203,6 @@ struct RoomLightingCard: View {
                         turnOnAll()
                     }) {
                         Image(systemName: "sun.max.fill")
-                        Text("Tout")
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.green)
@@ -130,7 +212,6 @@ struct RoomLightingCard: View {
                         turnOffAll()
                     }) {
                         Image(systemName: "moon.fill")
-                        Text("Tout")
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -138,19 +219,28 @@ struct RoomLightingCard: View {
                 
                 Button(action: {
                     withAnimation {
-                        expanded.toggle()
+                        isExpanded.toggle()
                     }
                 }) {
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(.gray)
+                        .padding(8)
+                        .background(Color.white.opacity(0.5)) // Zone de touche augmentée avec fond léger
+                        .clipShape(Circle())
                 }
             }
             .padding()
             .background(Color(.systemGray6))
             .cornerRadius(10)
+            // Tap gesture sur l'entête pour toggle (sauf sur les boutons)
+            .onTapGesture {
+                withAnimation {
+                    isExpanded.toggle()
+                }
+            }
             
             // Détails (si expandé)
-            if expanded {
+            if isExpanded {
                 VStack(alignment: .leading, spacing: 8) {
                     // Lumières directes
                     if !room.directLights.isEmpty {
@@ -182,8 +272,10 @@ struct RoomLightingCard: View {
                 .padding(.leading)
             }
         }
+        .padding(.vertical, 4)
     }
     
+    // ... turnOnAll and turnOffAll logic remains same, but we need to copy implementation
     private func turnOnAll() {
         let allLights = room.allLights
         let group = DispatchGroup()
