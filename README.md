@@ -48,6 +48,14 @@ Veuillez vous référer au projet d'installation pour plus de détails :
 |:---:|:---:|:---:|
 | ![Accueil](img/App001.png) | ![Éclairage](img/App002.png) | ![Volets](img/App003.png) |
 
+### Galerie Complète
+
+| | | |
+|:---:|:---:|:---:|
+| ![App004](img/App004.png) | ![App005](img/App005.png) | ![App006](img/App006.png) |
+| ![App007](img/App007.png) | ![App008](img/App008.png) | ![App009](img/App009.png) |
+| ![App010](img/App010.png) | ![App011](img/App011.png) | |
+
 ## Configuration
 
 Pour configurer l'application :
