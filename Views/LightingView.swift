@@ -15,14 +15,17 @@ struct LightingView: View {
     // Persistence de l'ordre des pièces (via UUID strings)
     @AppStorage("LightingView.roomOrder") private var savedRoomOrderString: String = ""
     
-    // État local des pièces (pour le reordering)
+    // Persistence des noms personnalisés (JSON String [ID: Name])
+    @AppStorage("LightingView.customNames") private var savedCustomNamesString: String = "{}"
+    
+    // État local des pièces (pour le reordering et renaming)
     @State private var rooms: [RoomLighting] = []
     
     // État d'expansion global (UUID des pièces ouvertes)
     // Par défaut vide = tout fermé
-    @State private var expandedRoomIds: Set<UUID> = []
+    @State private var expandedRoomIds: Set<String> = [] // IDs are Strings now
     
-    // Mode édition pour le reordering
+    // Mode édition pour le reordering et renaming
     @State private var isEditing = false
     
     var body: some View {
@@ -48,15 +51,15 @@ struct LightingView: View {
                     
                     Spacer()
                     
-                    EditButton() // Bouton natif SwiftUI pour activer le mode édition de la liste
+                    EditButton() // Bouton natif SwiftUI pour activer le mode édition
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 8)
                 
                 List {
-                    ForEach(rooms) { room in
+                    ForEach($rooms) { $room in
                         RoomLightingCard(
-                            room: room,
+                            room: $room,
                             isExpanded: Binding(
                                 get: { expandedRoomIds.contains(room.id) },
                                 set: { isExpanded in
@@ -84,6 +87,10 @@ struct LightingView: View {
             .onAppear {
                 loadRooms()
             }
+            // Sauvegarder les noms si modifications
+            .onChange(of: rooms) { _ in
+                saveCustomNames()
+            }
             .alert("Erreur", isPresented: $showingError) {
                 Button("OK", role: .cancel) { }
             } message: {
@@ -93,38 +100,51 @@ struct LightingView: View {
     }
     
     private func loadRooms() {
-        let allRooms = LightingData.rooms
+        var allRooms = LightingData.rooms
         
+        // 1. Charger et appliquer les noms personnalisés
+        if let data = savedCustomNamesString.data(using: .utf8),
+           let customNames = try? JSONDecoder().decode([String: String].self, from: data) {
+            
+            for i in 0..<allRooms.count {
+                if let customRoomName = customNames[allRooms[i].id] {
+                    allRooms[i].roomName = customRoomName
+                }
+                
+                for j in 0..<allRooms[i].directLights.count {
+                    if let customLightName = customNames[allRooms[i].directLights[j].id] {
+                        allRooms[i].directLights[j].name = customLightName
+                    }
+                }
+                
+                for k in 0..<allRooms[i].indirectLights.count {
+                    if let customLightName = customNames[allRooms[i].indirectLights[k].id] {
+                        allRooms[i].indirectLights[k].name = customLightName
+                    }
+                }
+            }
+        }
+        
+        // 2. Appliquer l'ordre sauvegardé
         if savedRoomOrderString.isEmpty {
-            // Premier lancement ou pas de sauvegarde : ordre par défaut (catégorisé si possible, ou juste liste)
-            // Ici on va prendre l'ordre par défaut de LightingData mais on pourrait appliquer le tri par catégorie existant avant
-            // Pour simplifier et respecter "par défaut", on prend la liste telle quelle,
-            // ou on peut pré-trier par catégorie comme avant si l'utilisateur n'a jamais touché.
-            // Reprenons le tri par catégorie initial pour la première vue :
             rooms = sortByDefaultCategories(allRooms)
         } else {
-            // Charger l'ordre sauvegardé
             let savedIds = savedRoomOrderString.split(separator: ",").map { String($0) }
-            
-            // Reconstruire la liste dans l'ordre
             var orderedRooms: [RoomLighting] = []
             var remainingRooms = allRooms
             
             for idStr in savedIds {
-                if let index = remainingRooms.firstIndex(where: { $0.id.uuidString == idStr }) {
+                if let index = remainingRooms.firstIndex(where: { $0.id == idStr }) {
                     orderedRooms.append(remainingRooms[index])
                     remainingRooms.remove(at: index)
                 }
             }
-            
-            // Ajouter les pièces manquantes (nouvelles pièces ajoutées dans le code par ex) à la fin
             orderedRooms.append(contentsOf: remainingRooms)
             rooms = orderedRooms
         }
     }
     
     private func sortByDefaultCategories(_ rooms: [RoomLighting]) -> [RoomLighting] {
-        // Logique de tri par catégorie initiale pour avoir une vue propre au premier lancement
         let categoryOrder = ["Chambres", "Bureau", "Salles de bain", "Toilettes", "Annexes", "Escalier", "Autres"]
         var sorted: [RoomLighting] = []
         
@@ -134,7 +154,6 @@ struct LightingView: View {
             }
             sorted.append(contentsOf: categoryRooms)
         }
-        
         return sorted
     }
     
@@ -149,8 +168,23 @@ struct LightingView: View {
     }
     
     private func saveOrder() {
-        let ids = rooms.map { $0.id.uuidString }
+        let ids = rooms.map { $0.id }
         savedRoomOrderString = ids.joined(separator: ",")
+    }
+    
+    private func saveCustomNames() {
+        var names: [String: String] = [:]
+        for room in rooms {
+            names[room.id] = room.roomName
+            for light in room.allLights {
+                names[light.id] = light.name
+            }
+        }
+        
+        if let data = try? JSONEncoder().encode(names),
+           let string = String(data: data, encoding: .utf8) {
+            savedCustomNamesString = string
+        }
     }
     
     private func move(from source: IndexSet, to destination: Int) {
@@ -170,9 +204,11 @@ struct LightingView: View {
 }
 
 struct RoomLightingCard: View {
-    let room: RoomLighting
+    @Binding var room: RoomLighting
     @Binding var isExpanded: Bool
     let onError: (String) -> Void
+    
+    @Environment(\.editMode) var editMode
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -183,8 +219,14 @@ struct RoomLightingCard: View {
                     .frame(width: 30)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(room.roomName)
-                        .font(.headline)
+                    if editMode?.wrappedValue == .active {
+                        TextField("Nom de la pièce", text: $room.roomName)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.headline)
+                    } else {
+                        Text(room.roomName)
+                            .font(.headline)
+                    }
                     
                     // Afficher le nombre de lampes
                     let totalLights = room.allLights.count
@@ -197,24 +239,26 @@ struct RoomLightingCard: View {
                 
                 Spacer()
                 
-                // Boutons groupe
-                if !room.directLights.isEmpty || !room.indirectLights.isEmpty {
-                    Button(action: {
-                        turnOnAll()
-                    }) {
-                        Image(systemName: "sun.max.fill")
+                // Boutons groupe (cachés en mode édition pour clarté)
+                if editMode?.wrappedValue != .active {
+                    if !room.directLights.isEmpty || !room.indirectLights.isEmpty {
+                        Button(action: {
+                            turnOnAll()
+                        }) {
+                            Image(systemName: "sun.max.fill")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.green)
+                        .controlSize(.small)
+                        
+                        Button(action: {
+                            turnOffAll()
+                        }) {
+                            Image(systemName: "moon.fill")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.green)
-                    .controlSize(.small)
-                    
-                    Button(action: {
-                        turnOffAll()
-                    }) {
-                        Image(systemName: "moon.fill")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
                 }
                 
                 Button(action: {
@@ -225,17 +269,18 @@ struct RoomLightingCard: View {
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .foregroundColor(.gray)
                         .padding(8)
-                        .background(Color.white.opacity(0.5)) // Zone de touche augmentée avec fond léger
+                        .background(Color.white.opacity(0.5))
                         .clipShape(Circle())
                 }
             }
             .padding()
             .background(Color(.systemGray6))
             .cornerRadius(10)
-            // Tap gesture sur l'entête pour toggle (sauf sur les boutons)
             .onTapGesture {
-                withAnimation {
-                    isExpanded.toggle()
+                if editMode?.wrappedValue != .active {
+                    withAnimation {
+                        isExpanded.toggle()
+                    }
                 }
             }
             
@@ -250,8 +295,8 @@ struct RoomLightingCard: View {
                             .foregroundColor(.secondary)
                             .padding(.horizontal)
                         
-                        ForEach(room.directLights) { light in
-                            LightingItemRow(light: light, onError: onError)
+                        ForEach($room.directLights) { $light in
+                            LightingItemRow(light: $light, onError: onError)
                         }
                     }
                     
@@ -264,8 +309,8 @@ struct RoomLightingCard: View {
                             .padding(.horizontal)
                             .padding(.top, room.directLights.isEmpty ? 0 : 12)
                         
-                        ForEach(room.indirectLights) { light in
-                            LightingItemRow(light: light, onError: onError)
+                        ForEach($room.indirectLights) { $light in
+                            LightingItemRow(light: $light, onError: onError)
                         }
                     }
                 }
@@ -275,7 +320,6 @@ struct RoomLightingCard: View {
         .padding(.vertical, 4)
     }
     
-    // ... turnOnAll and turnOffAll logic remains same, but we need to copy implementation
     private func turnOnAll() {
         let allLights = room.allLights
         let group = DispatchGroup()
@@ -322,9 +366,10 @@ struct RoomLightingCard: View {
 }
 
 struct LightingItemRow: View {
-    let light: LightingItem
+    @Binding var light: LightingItem
     let onError: (String) -> Void
     @State private var isOperating = false
+    @Environment(\.editMode) var editMode
     
     var body: some View {
         HStack {
@@ -332,31 +377,38 @@ struct LightingItemRow: View {
                 .foregroundColor(light.isIndirect ? .orange : .yellow)
                 .frame(width: 20)
             
-            Text(light.name)
-                .font(.body)
+            if editMode?.wrappedValue == .active {
+                TextField("Nom de la lampe", text: $light.name)
+                    .textFieldStyle(.roundedBorder)
+            } else {
+                Text(light.name)
+                    .font(.body)
+            }
             
             Spacer()
             
-            Button(action: {
-                turnOn()
-            }) {
-                Image(systemName: "sun.max.fill")
-                Text("On")
+            if editMode?.wrappedValue != .active {
+                Button(action: {
+                    turnOn()
+                }) {
+                    Image(systemName: "sun.max.fill")
+                    Text("On")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+                .controlSize(.small)
+                .disabled(isOperating)
+                
+                Button(action: {
+                    turnOff()
+                }) {
+                    Image(systemName: "moon.fill")
+                    Text("Off")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isOperating)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.green)
-            .controlSize(.small)
-            .disabled(isOperating)
-            
-            Button(action: {
-                turnOff()
-            }) {
-                Image(systemName: "moon.fill")
-                Text("Off")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .disabled(isOperating)
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
@@ -400,18 +452,18 @@ struct LightingItemRow: View {
 
 // MARK: - Merged Models (from LightingModels.swift)
 
-struct LightingItem: Identifiable {
-    let id = UUID()
-    let name: String
+struct LightingItem: Identifiable, Codable, Equatable {
+    let id: String
+    var name: String
     let onIndex: Int
     let offIndex: Int
     let value: String
     let isIndirect: Bool
 }
 
-struct RoomLighting: Identifiable {
-    let id = UUID()
-    let roomName: String
+struct RoomLighting: Identifiable, Codable, Equatable {
+    let id: String
+    var roomName: String
     let icon: String
     var directLights: [LightingItem]
     var indirectLights: [LightingItem]
@@ -426,206 +478,225 @@ struct LightingData {
     static let rooms: [RoomLighting] = [
         // Autres pièces (Salon, Cuisine, etc.)
         RoomLighting(
+            id: "room_salon",
             roomName: "Salon",
             icon: "sofa.fill",
             directLights: [
-                LightingItem(name: "Salon", onIndex: 612, offIndex: 606, value: "128", isIndirect: false)
+                LightingItem(id: "light_salon_direct", name: "Salon", onIndex: 612, offIndex: 606, value: "128", isIndirect: false)
             ],
             indirectLights: [
-                LightingItem(name: "Indirect 1", onIndex: 611, offIndex: 605, value: "2", isIndirect: true),
-                LightingItem(name: "Indirect 2", onIndex: 611, offIndex: 605, value: "4", isIndirect: true)
+                LightingItem(id: "light_salon_indirect_1", name: "Indirect 1", onIndex: 611, offIndex: 605, value: "2", isIndirect: true),
+                LightingItem(id: "light_salon_indirect_2", name: "Indirect 2", onIndex: 611, offIndex: 605, value: "4", isIndirect: true)
             ]
         ),
         
         // Chambres
-        // Chambres
         RoomLighting(
+            id: "room_chambre_grande",
             roomName: "Grande Chambre",
             icon: "bed.double.fill",
             directLights: [
-                LightingItem(name: "Grande Chambre", onIndex: 614, offIndex: 608, value: "128", isIndirect: false)
+                LightingItem(id: "light_chambre_grande_direct", name: "Grande Chambre", onIndex: 614, offIndex: 608, value: "128", isIndirect: false)
             ],
             indirectLights: [
-                LightingItem(name: "Chevet 1", onIndex: 613, offIndex: 607, value: "2", isIndirect: true),
-                LightingItem(name: "Chevet 2", onIndex: 613, offIndex: 607, value: "4", isIndirect: true)
+                LightingItem(id: "light_chambre_grande_chevet_1", name: "Chevet 1", onIndex: 613, offIndex: 607, value: "2", isIndirect: true),
+                LightingItem(id: "light_chambre_grande_chevet_2", name: "Chevet 2", onIndex: 613, offIndex: 607, value: "4", isIndirect: true)
             ]
         ),
         RoomLighting(
+            id: "room_chambre_petite_1",
             roomName: "Petite Chambre 1",
             icon: "bed.double.fill",
             directLights: [
-                LightingItem(name: "Petite Chambre 1", onIndex: 614, offIndex: 608, value: "64", isIndirect: false)
+                LightingItem(id: "light_chambre_petite_1_direct", name: "Petite Chambre 1", onIndex: 614, offIndex: 608, value: "64", isIndirect: false)
             ],
             indirectLights: [
-                LightingItem(name: "Chevet 1", onIndex: 613, offIndex: 607, value: "8", isIndirect: true),
-                LightingItem(name: "Chevet 2", onIndex: 613, offIndex: 607, value: "16", isIndirect: true)
+                LightingItem(id: "light_chambre_petite_1_chevet_1", name: "Chevet 1", onIndex: 613, offIndex: 607, value: "8", isIndirect: true),
+                LightingItem(id: "light_chambre_petite_1_chevet_2", name: "Chevet 2", onIndex: 613, offIndex: 607, value: "16", isIndirect: true)
             ]
         ),
         RoomLighting(
+            id: "room_chambre_petite_2",
             roomName: "Petite Chambre 2",
             icon: "bed.double.fill",
             directLights: [
-                LightingItem(name: "Petite Chambre 2", onIndex: 614, offIndex: 608, value: "32", isIndirect: false)
+                LightingItem(id: "light_chambre_petite_2_direct", name: "Petite Chambre 2", onIndex: 614, offIndex: 608, value: "32", isIndirect: false)
             ],
             indirectLights: [
-                LightingItem(name: "Chevet", onIndex: 613, offIndex: 607, value: "32", isIndirect: true)
+                LightingItem(id: "light_chambre_petite_2_chevet", name: "Chevet", onIndex: 613, offIndex: 607, value: "32", isIndirect: true)
             ]
         ),
         RoomLighting(
+            id: "room_chambre_petite_3",
             roomName: "Petite Chambre 3",
             icon: "bed.double.fill",
             directLights: [
-                LightingItem(name: "Petite Chambre 3", onIndex: 614, offIndex: 608, value: "16", isIndirect: false)
+                LightingItem(id: "light_chambre_petite_3_direct", name: "Petite Chambre 3", onIndex: 614, offIndex: 608, value: "16", isIndirect: false)
             ],
             indirectLights: [
-                LightingItem(name: "Chevet", onIndex: 613, offIndex: 607, value: "64", isIndirect: true)
+                LightingItem(id: "light_chambre_petite_3_chevet", name: "Chevet", onIndex: 613, offIndex: 607, value: "64", isIndirect: true)
             ]
         ),
         
         // Bureau
         RoomLighting(
+            id: "room_bureau",
             roomName: "Bureau",
             icon: "desktopcomputer",
             directLights: [
-                LightingItem(name: "Bureau", onIndex: 612, offIndex: 606, value: "32", isIndirect: false)
+                LightingItem(id: "light_bureau_direct", name: "Bureau", onIndex: 612, offIndex: 606, value: "32", isIndirect: false)
             ],
             indirectLights: []
         ),
         
         // Salles de bain
         RoomLighting(
+            id: "room_sdb_1",
             roomName: "Salle de Bain 1",
             icon: "shower.fill",
             directLights: [
-                LightingItem(name: "Salle de Bain 1", onIndex: 616, offIndex: 610, value: "128", isIndirect: false)
+                LightingItem(id: "light_sdb_1_direct", name: "Salle de Bain 1", onIndex: 616, offIndex: 610, value: "128", isIndirect: false)
             ],
             indirectLights: [
-                LightingItem(name: "Miroir", onIndex: 615, offIndex: 609, value: "4", isIndirect: true)
+                LightingItem(id: "light_sdb_1_miroir", name: "Miroir", onIndex: 615, offIndex: 609, value: "4", isIndirect: true)
             ]
         ),
         RoomLighting(
+            id: "room_sdb_2",
             roomName: "Salle de Bain 2",
             icon: "shower.fill",
             directLights: [
-                LightingItem(name: "Salle de Bain 2", onIndex: 615, offIndex: 609, value: "8", isIndirect: false)
+                LightingItem(id: "light_sdb_2_direct", name: "Salle de Bain 2", onIndex: 615, offIndex: 609, value: "8", isIndirect: false)
             ],
             indirectLights: [
-                LightingItem(name: "Miroir", onIndex: 615, offIndex: 609, value: "16", isIndirect: true)
+                LightingItem(id: "light_sdb_2_miroir", name: "Miroir", onIndex: 615, offIndex: 609, value: "16", isIndirect: true)
             ]
         ),
         
         // Toilettes
         RoomLighting(
+            id: "room_wc_1",
             roomName: "WC 1",
             icon: "toilet.fill",
             directLights: [
-                LightingItem(name: "WC 1", onIndex: 615, offIndex: 609, value: "32", isIndirect: false)
+                LightingItem(id: "light_wc_1_direct", name: "WC 1", onIndex: 615, offIndex: 609, value: "32", isIndirect: false)
             ],
             indirectLights: []
         ),
         RoomLighting(
+            id: "room_wc_2",
             roomName: "WC 2",
             icon: "toilet.fill",
             directLights: [
-                LightingItem(name: "WC 2", onIndex: 615, offIndex: 609, value: "64", isIndirect: false)
+                LightingItem(id: "light_wc_2_direct", name: "WC 2", onIndex: 615, offIndex: 609, value: "64", isIndirect: false)
             ],
             indirectLights: []
         ),
         
         // Annexes
         RoomLighting(
+            id: "room_annexe_1",
             roomName: "Annexe 1",
             icon: "door.left.hand.open",
             directLights: [
-                LightingItem(name: "Annexe 1", onIndex: 616, offIndex: 610, value: "8", isIndirect: false)
+                LightingItem(id: "light_annexe_1_direct", name: "Annexe 1", onIndex: 616, offIndex: 610, value: "8", isIndirect: false)
             ],
             indirectLights: []
         ),
         RoomLighting(
+            id: "room_annexe_2",
             roomName: "Annexe 2",
             icon: "door.left.hand.open",
             directLights: [
-                LightingItem(name: "Annexe 2", onIndex: 616, offIndex: 610, value: "16", isIndirect: false)
+                LightingItem(id: "light_annexe_2_direct", name: "Annexe 2", onIndex: 616, offIndex: 610, value: "16", isIndirect: false)
             ],
             indirectLights: []
         ),
         
         // Escalier
         RoomLighting(
+            id: "room_escalier",
             roomName: "Escalier",
             icon: "stairs",
             directLights: [
-                LightingItem(name: "Escalier", onIndex: 613, offIndex: 607, value: "1", isIndirect: false)
+                LightingItem(id: "light_escalier_direct", name: "Escalier", onIndex: 613, offIndex: 607, value: "1", isIndirect: false)
             ],
             indirectLights: []
         ),
         
-
         RoomLighting(
+            id: "room_salle_a_manger",
             roomName: "Salle à Manger",
             icon: "fork.knife",
             directLights: [
-                LightingItem(name: "Salle à Manger", onIndex: 612, offIndex: 606, value: "64", isIndirect: false)
+                LightingItem(id: "light_salle_a_manger_direct", name: "Salle à Manger", onIndex: 612, offIndex: 606, value: "64", isIndirect: false)
             ],
             indirectLights: []
         ),
         RoomLighting(
+            id: "room_cuisine",
             roomName: "Cuisine",
             icon: "cooktop.fill",
             directLights: [
-                LightingItem(name: "Cuisine", onIndex: 615, offIndex: 609, value: "1", isIndirect: false)
+                LightingItem(id: "light_cuisine_direct", name: "Cuisine", onIndex: 615, offIndex: 609, value: "1", isIndirect: false)
             ],
             indirectLights: [
-                LightingItem(name: "Plans de travail", onIndex: 615, offIndex: 609, value: "2", isIndirect: true)
+                LightingItem(id: "light_cuisine_plans", name: "Plans de travail", onIndex: 615, offIndex: 609, value: "2", isIndirect: true)
             ]
         ),
         RoomLighting(
+            id: "room_entree",
             roomName: "Entrée",
             icon: "door.garage.closed",
             directLights: [
-                LightingItem(name: "Entrée", onIndex: 611, offIndex: 605, value: "1", isIndirect: false)
+                LightingItem(id: "light_entree_direct", name: "Entrée", onIndex: 611, offIndex: 605, value: "1", isIndirect: false)
             ],
             indirectLights: []
         ),
         RoomLighting(
+            id: "room_degagement_1",
             roomName: "Dégagement 1",
             icon: "rectangle.3.group.fill",
             directLights: [
-                LightingItem(name: "Dégagement 1", onIndex: 616, offIndex: 610, value: "1", isIndirect: false)
+                LightingItem(id: "light_degagement_1_direct", name: "Dégagement 1", onIndex: 616, offIndex: 610, value: "1", isIndirect: false)
             ],
             indirectLights: []
         ),
         RoomLighting(
+            id: "room_degagement_2",
             roomName: "Dégagement 2",
             icon: "rectangle.3.group.fill",
             directLights: [
-                LightingItem(name: "Dégagement 2", onIndex: 616, offIndex: 610, value: "2", isIndirect: false)
+                LightingItem(id: "light_degagement_2_direct", name: "Dégagement 2", onIndex: 616, offIndex: 610, value: "2", isIndirect: false)
             ],
             indirectLights: []
         ),
         RoomLighting(
+            id: "room_dressing",
             roomName: "Dressing",
             icon: "tshirt.fill",
             directLights: [
-                LightingItem(name: "Dressing", onIndex: 611, offIndex: 605, value: "8", isIndirect: false)
+                LightingItem(id: "light_dressing_direct", name: "Dressing", onIndex: 611, offIndex: 605, value: "8", isIndirect: false)
             ],
             indirectLights: [
-                LightingItem(name: "Placards", onIndex: 611, offIndex: 605, value: "16", isIndirect: true)
+                LightingItem(id: "light_dressing_placards", name: "Placards", onIndex: 611, offIndex: 605, value: "16", isIndirect: true)
             ]
         ),
         RoomLighting(
+            id: "room_service",
             roomName: "Pièce de service",
             icon: "wrench.and.screwdriver.fill",
             directLights: [
-                LightingItem(name: "Pièce de service", onIndex: 615, offIndex: 609, value: "128", isIndirect: false)
+                LightingItem(id: "light_service_direct", name: "Pièce de service", onIndex: 615, offIndex: 609, value: "128", isIndirect: false)
             ],
             indirectLights: []
         ),
         RoomLighting(
+            id: "room_terrasse",
             roomName: "Terrasse",
             icon: "sun.max.fill",
             directLights: [
-                LightingItem(name: "Terrasse", onIndex: 616, offIndex: 610, value: "4", isIndirect: false)
+                LightingItem(id: "light_terrasse_direct", name: "Terrasse", onIndex: 616, offIndex: 610, value: "4", isIndirect: false)
             ],
             indirectLights: []
         )
