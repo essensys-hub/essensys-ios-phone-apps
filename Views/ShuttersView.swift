@@ -73,33 +73,8 @@ struct ShuttersView: View {
                 .padding(.vertical)
                 
                 List(shutters) { shutter in
-                    HStack {
-                        Text(shutter.label)
-                            .font(.body)
-                        
-                        Spacer()
-                        
-                        HStack(spacing: 12) {
-                            Button(action: {
-                                moveShutter(shutter, open: true)
-                            }) {
-                                Image(systemName: "arrow.up")
-                                    .padding(8)
-                                    .background(Color.green.opacity(0.1))
-                                    .clipShape(Circle())
-                            }
-                            
-                            Button(action: {
-                                moveShutter(shutter, open: false)
-                            }) {
-                                Image(systemName: "arrow.down")
-                                    .padding(8)
-                                    .background(Color.blue.opacity(0.1))
-                                    .clipShape(Circle())
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
+                    ShutterRow(shutter: shutter, showingError: $showingError, errorMessage: $errorMessage)
+                        .listRowSeparator(.hidden)
                 }
                 .listStyle(.plain)
             }
@@ -108,23 +83,6 @@ struct ShuttersView: View {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(errorMessage)
-            }
-        }
-    }
-    
-    private func moveShutter(_ shutter: ShutterItem, open: Bool) {
-        let k = open ? shutter.openIndex : shutter.closeIndex
-        let v = shutter.value
-        
-        EssensysAPI.shared.sendInjection(k: k, v: v) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success:
-                    break
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showingError = true
-                }
             }
         }
     }
@@ -147,6 +105,73 @@ struct ShuttersView: View {
             EssensysAPI.shared.sendInjection(k: shutter.closeIndex, v: shutter.value) { _ in
                 group.leave()
             }
+        }
+    }
+}
+
+struct ShutterRow: View {
+    let shutter: ShutterItem
+    @Binding var showingError: Bool
+    @Binding var errorMessage: String
+    
+    @State private var isCooldown = false
+    
+    var body: some View {
+        HStack {
+            Text(shutter.label)
+                .font(.body)
+            
+            Spacer()
+            
+            HStack(spacing: 12) {
+                Button(action: {
+                    moveShutter(open: true)
+                }) {
+                    Image(systemName: "arrow.up")
+                        .padding(8)
+                        .background(Color.green.opacity(0.1))
+                        .clipShape(Circle())
+                }
+                .disabled(isCooldown)
+                .opacity(isCooldown ? 0.6 : 1.0)
+                
+                Button(action: {
+                    moveShutter(open: false)
+                }) {
+                    Image(systemName: "arrow.down")
+                        .padding(8)
+                        .background(Color.blue.opacity(0.1))
+                        .clipShape(Circle())
+                }
+                .disabled(isCooldown)
+                .opacity(isCooldown ? 0.6 : 1.0)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private func moveShutter(open: Bool) {
+        startCooldown()
+        let k = open ? shutter.openIndex : shutter.closeIndex
+        let v = shutter.value
+        
+        EssensysAPI.shared.sendInjection(k: k, v: v) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    break
+                case .failure(let error):
+                    errorMessage = error.localizedDescription
+                    showingError = true
+                }
+            }
+        }
+    }
+    
+    private func startCooldown() {
+        isCooldown = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            isCooldown = false
         }
     }
 }

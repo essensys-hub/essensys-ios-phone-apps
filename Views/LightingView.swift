@@ -369,6 +369,7 @@ struct LightingItemRow: View {
     @Binding var light: LightingItem
     let onError: (String) -> Void
     @State private var isOperating = false
+    @State private var isCooldown = false
     @Environment(\.editMode) var editMode
     
     var body: some View {
@@ -397,7 +398,8 @@ struct LightingItemRow: View {
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
                 .controlSize(.small)
-                .disabled(isOperating)
+                .disabled(isOperating || isCooldown)
+                .opacity(isCooldown ? 0.6 : 1.0)
                 
                 Button(action: {
                     turnOff()
@@ -407,7 +409,8 @@ struct LightingItemRow: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(isOperating)
+                .disabled(isOperating || isCooldown)
+                .opacity(isCooldown ? 0.6 : 1.0)
             }
         }
         .padding(.horizontal)
@@ -417,6 +420,7 @@ struct LightingItemRow: View {
     }
     
     private func turnOn() {
+        startCooldown()
         isOperating = true
         EssensysAPI.shared.sendInjection(k: light.onIndex, v: light.value) { result in
             DispatchQueue.main.async {
@@ -432,6 +436,7 @@ struct LightingItemRow: View {
     }
     
     private func turnOff() {
+        startCooldown()
         isOperating = true
         EssensysAPI.shared.sendInjection(k: light.offIndex, v: light.value) { result in
             DispatchQueue.main.async {
@@ -443,6 +448,13 @@ struct LightingItemRow: View {
                     onError(error.localizedDescription)
                 }
             }
+        }
+    }
+    
+    private func startCooldown() {
+        isCooldown = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            isCooldown = false
         }
     }
 }
