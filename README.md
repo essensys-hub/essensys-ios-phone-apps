@@ -46,7 +46,7 @@ Veuillez vous référer au projet d'installation pour plus de détails :
 
 | Accueil & Scènes | Éclairage (Groupé) | Volets |
 |:---:|:---:|:---:|
-| ![Accueil](img/App001.png) | ![Éclairage](img/App002.png) | ![Volets](img/App003.png) |
+| ![Accueil](img/App001.png) | ![Éclairage](img/App005.png) | ![Volets](img/App007.png) |
 
 ### Galerie Complète
 
