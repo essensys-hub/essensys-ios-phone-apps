@@ -27,26 +27,32 @@ struct HomeView: View {
                     Image(systemName: "mic")
                         .foregroundColor(.gray)
                     Image(systemName: "text.viewfinder")
-                        .foregroundColor(.gray)
+                        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
                 }
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(10)
                 
+                Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"))")
+                    .font(.caption2)
+                    .foregroundColor(.gray.opacity(0.5))
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.trailing, 4)
+                
                 // Scènes d'éclairage
                 LightingScenesSection()
                 
                 // Éclairage Indirects
-                IndirectLightsSection()
+                //IndirectLightsSection()
                 
                 // Chauffage (Aperçu Dashboard)
-                HeatingSection()
+                //HeatingSection()
                 
                 // Configuration (Aperçu Dashboard)
-                ConfigurationSummaryView()
+                //ConfigurationSummaryView()
                 
                 // Notifications
-                NotificationsSection()
+                //NotificationsSection()
                 
                 // Dernière action
                 LastActionSection()

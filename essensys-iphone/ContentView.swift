@@ -26,8 +26,12 @@ struct ContentView: View {
                 case 2:
                     ShuttersView()
                 case 3:
-                    AlarmView()
+                    HeatingView()
                 case 4:
+                    AlarmView()
+                case 5:
+                    WateringView()
+                case 6:
                     ConfigurationView()
                 default:
                     HomeView()
@@ -410,7 +414,7 @@ struct CustomHeaderView: View {
     @Binding var selectedTab: Int
     @EnvironmentObject var connectionManager: ConnectionManager
     
-    let tabs = ["Accueil", "Éclairage", "Volets", "Alarme", "Configuration"]
+    let tabs = ["Accueil", "Éclairage", "Volets", "Chauffage", "Alarme", "Arrosage", "Configuration"]
     
     var body: some View {
         VStack(spacing: 15) {
@@ -432,9 +436,9 @@ struct CustomHeaderView: View {
                     }
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: connectionManager.config.mode == .local ? "wifi" : "globe")
+                        Image(systemName: connectionManager.isDemoMode ? "play.rectangle.fill" : (connectionManager.config.mode == .local ? "wifi" : "globe"))
                             .font(.title2)
-                            .foregroundColor(connectionManager.config.mode == .local ? .green : .blue)
+                            .foregroundColor(connectionManager.isDemoMode ? .red : (connectionManager.config.mode == .local ? .green : .blue))
                         Text("Essensys")
                             .font(.title3)
                             .fontWeight(.bold)
@@ -459,6 +463,7 @@ struct CustomHeaderView: View {
                                     .fontWeight(selectedTab == index ? .bold : .regular)
                                     .foregroundColor(selectedTab == index ? .blue : .gray)
                                     .padding(.bottom, 4)
+                                    .padding(.horizontal, 4)
                                     .overlay(
                                         Rectangle()
                                             .frame(height: 2)
@@ -466,6 +471,7 @@ struct CustomHeaderView: View {
                                             .offset(y: 4)
                                         , alignment: .bottom
                                     )
+                                    .fixedSize()
                             }
                         }
                     }

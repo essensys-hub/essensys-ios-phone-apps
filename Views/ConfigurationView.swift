@@ -25,7 +25,7 @@ struct ConfigurationView: View {
                     InfoBanner()
                     
                     // Section Chauffage (à implémenter)
-                    HeatingSection()
+                    //HeatingSection()
                     
                     // Section Configuration Backend
                     BackendConfigSection(
@@ -39,7 +39,19 @@ struct ConfigurationView: View {
                     )
                     
                     // Section Notifications
-                    NotificationsConfigSection()
+                    //NotificationsConfigSection()
+                    
+                    // Version Footer
+                    VStack(spacing: 4) {
+                        Text("Essensys iOS")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                        Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"))")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 20)
                 }
                 .padding()
             }
@@ -226,7 +238,7 @@ struct BackendConfigSection: View {
         isEditing = false
     }
 }
-
+/*
 struct NotificationsConfigSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -253,4 +265,4 @@ struct NotificationsConfigSection: View {
         }
     }
 }
-
+*/

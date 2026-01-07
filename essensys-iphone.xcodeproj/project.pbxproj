@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CCB6132B2F0DBB82002B39B7 /* HeatingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB6132A2F0DBB82002B39B7 /* HeatingView.swift */; };
+		CCB6132D2F0DBCC7002B39B7 /* WateringView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB6132C2F0DBCC7002B39B7 /* WateringView.swift */; };
 		CCEB5EFE2F09919C00C0A697 /* ConnectionConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EF42F09919C00C0A697 /* ConnectionConfig.swift */; };
 		CCEB5EFF2F09919C00C0A697 /* AlarmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EF92F09919C00C0A697 /* AlarmView.swift */; };
 		CCEB5F002F09919C00C0A697 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EFB2F09919C00C0A697 /* HomeView.swift */; };
@@ -38,6 +40,8 @@
 		CC3222572F098A21004DF5DE /* essensys-iphone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "essensys-iphone.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC3222672F098A23004DF5DE /* essensys-iphoneTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "essensys-iphoneTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC3222712F098A23004DF5DE /* essensys-iphoneUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "essensys-iphoneUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CCB6132A2F0DBB82002B39B7 /* HeatingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeatingView.swift; sourceTree = "<group>"; };
+		CCB6132C2F0DBCC7002B39B7 /* WateringView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WateringView.swift; sourceTree = "<group>"; };
 		CCEB5EF42F09919C00C0A697 /* ConnectionConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionConfig.swift; sourceTree = "<group>"; };
 		CCEB5EF62F09919C00C0A697 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
 		CCEB5EF72F09919C00C0A697 /* EssensysAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EssensysAPI.swift; sourceTree = "<group>"; };
@@ -134,6 +138,8 @@
 		CCEB5EFD2F09919C00C0A697 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				CCB6132C2F0DBCC7002B39B7 /* WateringView.swift */,
+				CCB6132A2F0DBB82002B39B7 /* HeatingView.swift */,
 				CCEB5EF92F09919C00C0A697 /* AlarmView.swift */,
 				CCEB5EFA2F09919C00C0A697 /* ConfigurationView.swift */,
 				CCEB5EFB2F09919C00C0A697 /* HomeView.swift */,
@@ -287,8 +293,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CCB6132B2F0DBB82002B39B7 /* HeatingView.swift in Sources */,
 				CCEB5EFE2F09919C00C0A697 /* ConnectionConfig.swift in Sources */,
 				CCEB5EFF2F09919C00C0A697 /* AlarmView.swift in Sources */,
+				CCB6132D2F0DBCC7002B39B7 /* WateringView.swift in Sources */,
 				CCEB5F002F09919C00C0A697 /* HomeView.swift in Sources */,
 				CCEB5F012F09919C00C0A697 /* EssensysAPI.swift in Sources */,
 				CCEB5F022F09919C00C0A697 /* LightingView.swift in Sources */,
