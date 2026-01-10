@@ -19,8 +19,32 @@ struct HomeView: View {
                 // Info Banner
                 InfoBanner()
                 
+                // Quick Actions
+                Button(action: {
+                    EssensysAPI.shared.sendInjection(k: 545, v: "2") { _ in }
+                }) {
+                    HStack {
+                        Image(systemName: "door.left.hand.open")
+                            .font(.title2)
+                        VStack(alignment: .leading) {
+                            Text("Je Pars")
+                                .font(.headline)
+                            Text("Éteindre toutes les lumières")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                    }
+                    .padding()
+                    .foregroundColor(.white)
+                    .background(Color.blue)
+                    .cornerRadius(12)
+                }
+
+                
                 // Search Bar
-                HStack {
+                /*HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
                     TextField("Recherche...", text: $searchText)
@@ -28,7 +52,7 @@ struct HomeView: View {
                         .foregroundColor(.gray)
                     Image(systemName: "text.viewfinder")
                         .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-                }
+                }*/
                 .padding()
                 .background(Color(.systemGray6))
                 .cornerRadius(10)
@@ -100,7 +124,7 @@ struct LightingScenesSection: View {
             name: "Départ",
             icon: "door.left.hand.open",
             description: "Éteint : tout sauf le couloir",
-            actions: [(k: 610, v: "4"), (k: 619, v: "4")]
+            actions: [(k: 545, v: "2")]
         )
     ]
     
