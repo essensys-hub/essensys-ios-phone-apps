@@ -84,7 +84,7 @@ Jeton, cookie et certificat épinglé sont stockés dans le Keychain (`kSecClass
 ## Migration Plan
 
 1. Branche `feat/ios-portal-refresh-2026-10-003`, réintégration des sources (D1), puis le reste de la refonte.
-2. Build TestFlight 2.0.0 (1), invitation des testeurs (Bertrand Germain, …).
+2. Build TestFlight 2.0.0 (1), distribuée au groupe de testeurs existant (famille).
 3. Rollback : l'ancienne app n'est pas sur l'App Store. Les testeurs peuvent garder la v1 installée en local tant que la v2 TestFlight n'est pas validée.
 
 ## Open Questions
