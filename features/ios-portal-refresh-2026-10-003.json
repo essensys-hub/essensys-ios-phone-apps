@@ -2,7 +2,7 @@
   "$schema": "./schema/feature.schema.json",
   "id": "ios-portal-refresh-2026-10-003",
   "title": "Refonte et mise à jour de l'application iPhone (parité portail)",
-  "status": "proposed",
+  "status": "in-progress",
   "owner": "rhinosys",
   "github": {
     "issue": "essensys-hub/essensys-feature-lifecycle#13",
@@ -28,22 +28,30 @@
   },
   "implementation": {
     "paths": [
-      "EssensysApp/essensys-iphone/Models/ConnectionConfig.swift",
-      "EssensysApp/essensys-iphone/Services/ConnectionManager.swift",
-      "EssensysApp/essensys-iphone/Services/EssensysAPI.swift",
-      "EssensysApp/essensys-iphone/Views/AlarmView.swift",
-      "EssensysApp/essensys-iphone/Views/ConfigurationView.swift",
-      "EssensysApp/essensys-iphone/Views/HeatingView.swift",
-      "EssensysApp/essensys-iphone/Views/HomeView.swift",
-      "EssensysApp/essensys-iphone/Views/LightingView.swift",
-      "EssensysApp/essensys-iphone/Views/ShuttersView.swift",
-      "EssensysApp/essensys-iphone/Views/WateringView.swift",
-      "EssensysApp/essensys-iphone/essensys-iphone/ContentView.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/AppContainer.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/Auth/AuthRepository.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/Control/ControlRepository.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/Control/IndexTable.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/HTTP/APIClient.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/HTTP/APIError.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/HTTP/DTO.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/HTTP/LanTrust.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/HTTP/NoArmoireGuard.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/Session/KeychainPersistence.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/Session/PortalRepository.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Data/Session/SessionStore.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/Debug/UITestBackend.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/UI/Components.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/UI/ControlModel.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/UI/EssensysRoot.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/UI/Screens/AuthScreens.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/UI/Screens/ControlScreens.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/UI/Screens/MainScreens.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/UI/SessionModel.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/UI/Theme.swift",
       "EssensysApp/essensys-iphone/essensys-iphone/essensys_iphoneApp.swift",
-      "EssensysApp/essensys-iphone/essensys-iphoneTests/essensys_iphoneTests.swift",
-      "EssensysApp/essensys-iphone/essensys-iphoneUITests/essensys_iphoneUITests.swift",
-      "EssensysApp/essensys-iphone/essensys-iphoneUITests/essensys_iphoneUITestsLaunchTests.swift",
-      "EssensysApp/essensys-iphone/essensys-iphone.xcodeproj/project.pbxproj"
+      "EssensysApp/essensys-iphone/essensys-iphone.xcodeproj/project.pbxproj",
+      "EssensysApp/Info.plist"
     ],
     "primary_surface": "ios"
   },
@@ -53,14 +61,31 @@
     ],
     "language": "fr",
     "i18n_keys": [],
-    "screenshots": []
+    "screenshots": [
+      "img/v2/01-login-light.png",
+      "img/v2/02-home-light.png",
+      "img/v2/03-lighting-light.png",
+      "img/v2/04-shutters-light.png",
+      "img/v2/05-password-change.png",
+      "img/v2/06-link.png",
+      "img/v2/07-lighting-dark.png",
+      "img/v2/08-settings-dark.png"
+    ]
   },
   "tests": {
     "playwright": [],
     "junit": [
-      "EssensysApp/essensys-iphone/essensys-iphoneTests/essensys_iphoneTests.swift",
-      "EssensysApp/essensys-iphone/essensys-iphoneUITests/essensys_iphoneUITests.swift",
-      "EssensysApp/essensys-iphone/essensys-iphoneUITests/essensys_iphoneUITestsLaunchTests.swift"
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/AuthRepositoryTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/ControlModelTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/ControlRepositoryTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/IndexTableTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/KeychainPersistenceTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/LanTrustTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/NoArmoireGuardTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/SessionPollingTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/Support/MockBackend.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/ThemeTokensTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneUITests/essensys_iphoneUITests.swift"
     ],
     "coverage_must_test": [
       "cloud login stores jwt and shows home",

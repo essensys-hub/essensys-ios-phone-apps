@@ -37,5 +37,5 @@
 - [ ] 6.1 CI GitHub macOS : build, tests unitaires, rapport NR ; vérifier un run vert sur la PR
 - [ ] 6.2 `/checkup essensys-ios-phone-apps` vert, captures postées sur #13 ; manifest à jour, gate `--strict` verte
 - [ ] 6.3 Archive signée 2.0.0 et upload TestFlight (D7, phase 1) ; vérifier la build « Ready to Test » dans App Store Connect
-- [ ] 6.4 README, captures et guide testeur TestFlight (invitation, installation, connexion Cloud)
+- [x] 6.4 README, captures et guide testeur TestFlight (invitation, installation, connexion Cloud)
 - [ ] 6.5 Inviter les testeurs (dont Bertrand Germain) et recueillir leurs retours sur #13
