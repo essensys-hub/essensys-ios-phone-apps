@@ -1,7 +1,7 @@
 ## 1. Sources, socle et outillage de test (#1)
 
 - [x] 1.1 Réintégrer les sources (D1) : retirer le gitlink, importer l'historique local (dont `wip(home)`), supprimer le `.git` interne après archivage ; vérifier qu'un clone neuf contient `essensys-iphone.xcodeproj` et que `git submodule status` est vide
-- [ ] 1.2 Base : Swift 6 (concurrence stricte), iOS 18 minimum, cibles de tests unitaires et UI, schéma de test partagé ; vérifier `xcodebuild build` et `xcodebuild test` (suite vide) sur un simulateur iPhone
+- [x] 1.2 Base : Swift 6 (concurrence stricte), iOS 18 minimum, cibles de tests unitaires et UI, schéma de test partagé ; vérifier `xcodebuild build` et `xcodebuild test` (suite vide) sur un simulateur iPhone
 - [ ] 1.3 Outillage : `MockURLProtocol`, fixtures JSON reprises de l'Android, `NoArmoireGuard`, conversion xcresult vers JUnit ; vérifier un test `NR_ios_1` (mutation vers un hôte réel bloquée) dans le rapport `nonreg_report.py`
 - [ ] 1.4 Vérifier l'accès App Store Connect (équipe J32285QB9J, rôle permettant TestFlight) ; consigner le résultat sur #13
 

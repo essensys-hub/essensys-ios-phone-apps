@@ -2,19 +2,16 @@
 //  essensys_iphoneApp.swift
 //  essensys-iphone
 //
-//  Created by Nicolas Rineau on 03/01/2026.
+//  Point d'entrée. Refonte v2 : ios-portal-refresh-2026-10-003 (essensys-hub/essensys-feature-lifecycle#13).
 //
 
 import SwiftUI
 
 @main
-struct essensys_iphoneApp: App {
-    @StateObject private var connectionManager = ConnectionManager.shared
-    
+struct EssensysApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(connectionManager)
         }
     }
 }
