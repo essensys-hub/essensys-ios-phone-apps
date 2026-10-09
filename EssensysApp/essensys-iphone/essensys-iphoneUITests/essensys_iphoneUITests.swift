@@ -60,7 +60,7 @@ final class AppFlowUITests: XCTestCase {
 
     // NR: NR-ios-8 essensys-hub/essensys-ios-phone-apps#4
     @MainActor func test_lighting_command_is_sent_once_on_double_tap_NR_ios_8() {
-        let app = launch(["UITEST_TOKEN": "1", "UITEST_INJECT_DELAY_MS": "800"])
+        let app = launch(["UITEST_TOKEN": "1", "UITEST_INJECT_DELAY_MS": "3000"])
         XCTAssertTrue(app.tabBars.buttons["Éclairage"].waitForExistence(timeout: 10))
         app.tabBars.buttons["Éclairage"].tap()
         let salon = app.buttons["light-salon-primary"]

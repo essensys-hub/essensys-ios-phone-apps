@@ -29,7 +29,7 @@
 ## 5. Thème et finitions (#5)
 
 - [x] 5.1 Thème du portail (tokens clair et sombre, formes), choix Système / Clair / Sombre ; test des tokens
-- [ ] 5.2 Navigation V1 (Accueil, Éclairage, Volets, Réglages ; « Bientôt disponible »), suppression des écrans factices et de l'ancienne couche API ; vérifier sur iPhone SE et Pro Max
+- [x] 5.2 Navigation V1 (Accueil, Éclairage, Volets, Réglages ; « Bientôt disponible »), suppression des écrans factices et de l'ancienne couche API ; vérifier sur iPhone SE et Pro Max
 - [x] 5.3 Réglages (mode, thème, mode test, déconnexion, version) ; test UI
 
 ## 6. Qualité, distribution et livraison (#6)

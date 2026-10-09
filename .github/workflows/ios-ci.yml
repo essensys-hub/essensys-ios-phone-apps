@@ -1,0 +1,70 @@
+name: iOS CI
+
+# Build + tests unitaires (Swift Testing) sur simulateur, rapport de non-régression NR-ios-*.
+# Les tests UI (XCUITest, backend simulé embarqué) tournent via /checkup en local : jamais d'armoire réelle.
+# Feature : ios-portal-refresh-2026-10-003 (essensys-hub/essensys-feature-lifecycle#13).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: macos-26
+    defaults:
+      run:
+        working-directory: EssensysApp/essensys-iphone
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Xcode
+        run: xcodebuild -version
+
+      - name: Tests unitaires (simulateur iPhone)
+        id: unit
+        continue-on-error: true
+        run: |
+          xcodebuild -project essensys-iphone.xcodeproj -scheme essensys-iphone \
+            -destination 'platform=iOS Simulator,name=iPhone 17,OS=latest' \
+            -resultBundlePath "$RUNNER_TEMP/unit.xcresult" \
+            -only-testing:essensys-iphoneTests test | tail -30
+
+      - name: Scripts lifecycle (rapport NR)
+        uses: actions/checkout@v7
+        with:
+          repository: essensys-hub/essensys-feature-lifecycle
+          ref: ${{ vars.LIFECYCLE_REF || 'main' }}
+          path: .lifecycle
+
+      - name: Rapport de non-régression
+        id: nonreg
+        working-directory: .
+        run: |
+          mkdir -p .artifacts
+          set +e
+          python3 .lifecycle/scripts/feature_lifecycle/xcresult_to_junit.py "$RUNNER_TEMP/unit.xcresult" --out .artifacts/junit/unit.xml
+          python3 .lifecycle/scripts/feature_lifecycle/nonreg_report.py --sources EssensysApp/essensys-iphone \
+            --out .artifacts/nonreg.json --markdown .artifacts/nonreg.md .artifacts/junit
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: nonreg-report
+          path: .artifacts/
+          retention-days: 90
+
+      - name: Échec si tests ou rapport NR en erreur
+        working-directory: .
+        run: |
+          if [ "${{ steps.unit.outcome }}" != "success" ]; then echo "Tests unitaires en échec"; exit 1; fi
+          if [ "${{ steps.nonreg.outputs.exit_code }}" != "0" ]; then echo "Rapport NR en erreur"; exit 1; fi
