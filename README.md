@@ -48,6 +48,19 @@ Swift 6 (concurrence stricte) et SwiftUI, iOS 18 minimum, Xcode 26.6. Le projet 
 - Xcode 26.6 avec la plateforme iOS 26.5 (`xcodebuild -downloadPlatform iOS`).
 - Si `simctl` bloque ou que Xcode signale « CoreSimulator is out of date », lancez une fois `sudo xcodebuild -runFirstLaunch`.
 
+### Publier une build TestFlight
+
+```bash
+cd EssensysApp/essensys-iphone
+xcodebuild -project essensys-iphone.xcodeproj -scheme essensys-iphone -configuration Release \
+  -destination 'generic/platform=iOS' -archivePath build/essensys.xcarchive archive -allowProvisioningUpdates
+# PATH système : le rsync de Homebrew (3.x) casse la création de l'IPA (« Copy failed »).
+env PATH=/usr/bin:/bin:/usr/sbin:/sbin xcodebuild -exportArchive -archivePath build/essensys.xcarchive \
+  -exportOptionsPlist ExportOptions.plist -exportPath build/export -allowProvisioningUpdates
+```
+
+`ExportOptions.plist` : `method` = `app-store-connect`, `destination` = `upload`, `teamID` = `J32285QB9J`, signature automatique. Il faut le compte Apple connecté dans Xcode et l'accord de licence du programme à jour. Incrémentez `CURRENT_PROJECT_VERSION` avant chaque nouvel envoi.
+
 ### Commandes
 
 ```bash
