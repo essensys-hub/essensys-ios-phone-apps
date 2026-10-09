@@ -93,3 +93,12 @@ iOSInjectionProject/
 .DS_Store
 
 
+# Xcode — données propres à chaque utilisateur / artefacts (ios-portal-refresh-2026-10-003)
+xcuserdata/
+DerivedData/
+build/
+*.xcresult
+*.ipa
+*.xcarchive
+.DS_Store
+.artifacts/

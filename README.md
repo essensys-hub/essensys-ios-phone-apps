@@ -1,105 +1,85 @@
-# Essensys iOS Application
+# Essensys iPhone
 
-Application iOS native pour contrôler le système Essensys depuis un iPhone.
+L'application iPhone officielle pour piloter une installation domotique Essensys. Elle reprend l'apparence et le fonctionnement du portail web, en **cloud** (`mon.essensys.fr`) ou directement sur le **réseau local** (gateway `mon.essensys.local`). C'est la jumelle de l'[app Android v2.0.0](https://github.com/essensys-hub/essensys-android-phone-apps) : mêmes écrans, mêmes commandes.
 
-## Table des Matières
+> **Version 2.0.0** (change OpenSpec `ios-portal-refresh-2026-10-003`, ticket [essensys-feature-lifecycle#13](https://github.com/essensys-hub/essensys-feature-lifecycle/issues/13)). Refonte complète de la v1.
 
-- [Fonctionnalités](#fonctionnalités)
-- [Prérequis Système](#prérequis-système)
-- [Aperçu](#aperçu)
-- [Configuration](#configuration)
-- [Structure du Projet](#structure-du-projet)
-- [Développement](#développement)
+## Fonctionnalités (V1)
 
-## Prérequis Système
+- **Connexion cloud** avec votre compte du portail (email et mot de passe), y compris le changement obligatoire d'un mot de passe temporaire.
+- **Connexion réseau local** directement à la gateway, en HTTPS uniquement. Le certificat de la gateway est confirmé une seule fois, à la première connexion.
+- **Liaison de l'armoire** : un compte sans armoire liée peut demander la liaison depuis l'application.
+- **Éclairage** : par pièce, éclairage principal et indirect, « tout allumer » et « tout éteindre ».
+- **Volets et stores** : par volet, par groupe ou tous, avec le temps de course configuré.
+- **État de l'armoire** (en ligne ou hors ligne) et **dernière action** en cloud. Les commandes sont désactivées quand l'armoire est hors ligne.
+- **Mode test** : le serveur valide les commandes sans que l'armoire les exécute.
+- **Thème** Système, Clair ou Sombre, avec la charte du portail.
 
-Cette application nécessite une installation fonctionnelle du serveur Essensys sur un Raspberry Pi.
-Veuillez vous référer au projet d'installation pour plus de détails :
-
-- **Dépôt GitHub** : [essensys-hub/essensys-raspberry-install](https://github.com/essensys-hub/essensys-raspberry-install)
-- **Documentation** : [Guide d'installation](https://essensys-hub.github.io/essensys-raspberry-install/)
-
-## Fonctionnalités
-
-### 🏠 Tableau de Bord (Accueil)
-- Vue synthétique de l'état du système.
-- **Scènes** : Activation rapide (Réveil, Soirée, Nuit, Départ).
-- **Résumé Connexion** : Voir l'état de la connexion (Local/WAN) et basculer rapidement.
-
-### 💡 Éclairage
-- **Gestion Groupée** : Contrôle des lumières par pièce (Salon, Chambres, Cuisine, etc.).
-- **Contrôle Rapide** : Boutons "Tout ouvrir" et "Tout fermer" pour agir sur tous les groupes.
-- **Réorganisation** : Possibilité de réorganiser l'ordre des pièces via Drag & Drop (sauvegardé sur l'appareil).
-- **Visualisation** : Indicateurs pour lumières directes et indirectes.
-
-### 🪟 Volets
-- Contrôle des volets roulants par pièce.
-- Actions : Monter, Stop, Descendre.
-
-### 🔧 Configuration & Connexion
-- **Double Mode** :
-  - **Local (WiFi)** : Connexion directe sans authentification (ex: `http://mon.essensys.fr`).
-  - **WAN (Extérieur)** : Connexion sécurisée avec authentification Basic Auth (Nom d'utilisateur/Mot de passe).
-- **Switch Rapide** : Basculez entre Local et WAN directement depuis l'en-tête de l'application (Menu logo Essensys) ou depuis l'écran d'accueil.
+Le chauffage, les scénarios, le chauffe-eau, l'arrosage et l'alarme arrivent dans la prochaine version. En attendant, ils restent accessibles depuis le portail web.
 
 ## Aperçu
 
-| Accueil & Scènes | Éclairage (Groupé) | Volets |
-|:---:|:---:|:---:|
-| ![Accueil](img/App001.png) | ![Éclairage](img/App005.png) | ![Volets](img/App007.png) |
+| Connexion | Accueil | Éclairage | Volets |
+|---|---|---|---|
+| ![Connexion](img/v2/01-login-light.png) | ![Accueil](img/v2/02-home-light.png) | ![Éclairage](img/v2/03-lighting-light.png) | ![Volets](img/v2/04-shutters-light.png) |
 
-### Galerie Complète
+| Mot de passe temporaire | Liaison armoire | Éclairage (sombre) | Réglages (sombre) |
+|---|---|---|---|
+| ![Mot de passe](img/v2/05-password-change.png) | ![Liaison](img/v2/06-link.png) | ![Éclairage sombre](img/v2/07-lighting-dark.png) | ![Réglages](img/v2/08-settings-dark.png) |
 
-| | | |
-|:---:|:---:|:---:|
-| ![App004](img/App004.png) | ![App005](img/App005.png) | ![App006](img/App006.png) |
-| ![App007](img/App007.png) | ![App008](img/App008.png) | ![App009](img/App009.png) |
-| ![App010](img/App010.png) | ![App011](img/App011.png) | |
+## Installation (testeurs, via TestFlight)
 
-## Configuration
+1. Installez l'application **TestFlight** depuis l'App Store (gratuite, éditée par Apple).
+2. Ouvrez l'**invitation** reçue par email depuis votre iPhone, puis appuyez sur **Voir dans TestFlight** et **Accepter**.
+3. Dans TestFlight, appuyez sur **Installer** à côté de **Essensys**. Les mises à jour arrivent ensuite automatiquement.
+4. Ouvrez l'application et choisissez le mode de connexion :
+   - **Cloud** (recommandé) : connectez-vous avec le compte de votre portail `mon.essensys.fr`.
+   - **Réseau local** : à utiliser chez vous, sur le Wi-Fi de l'installation. Adresse par défaut : `https://mon.essensys.local`. À la première connexion, l'application affiche l'**empreinte du certificat de la gateway**. Comparez-la avec celle que vous a transmise l'installateur, puis confirmez seulement si elle est identique.
+5. Le badge vert **« Armoire en ligne »** confirme que votre installation est reliée. Après chaque appui, l'application confirme l'envoi, et l'armoire exécute la commande en environ 5 secondes.
 
-Pour configurer l'application :
-
-1. Aller dans l'onglet **Configuration**.
-2. Remplir les champs :
-   - **URL Locale** : Adresse sur le réseau WiFi (ex: `http://192.168.1.101`).
-   - **URL WAN** : Adresse pour l'accès extérieur.
-   - **Nom d'utilisateur** : (Optionnel, "user" par défaut).
-   - **Mot de passe WAN** : Requis pour l'accès extérieur.
-3. Utiliser le bouton "Basculer" ou le menu en haut à gauche pour changer de mode.
-
-## Structure du projet
-
-```
-EssensysApp/
-├── essensys-iphone/
-│   ├── Views/
-│   │   ├── HomeView.swift           # Dashboard
-│   │   ├── LightingView.swift       # Contrôle éclairage (Reorderable List)
-│   │   ├── ShuttersView.swift       # Contrôle volets
-│   │   ├── ConfigurationView.swift  # Paramètres
-│   │   └── SharedComponents.swift   # Composants UI (Header, Banner, etc.)
-│   ├── Services/
-│   │   ├── ConnectionManager.swift  # Gestion état connexion & Auth
-│   │   └── EssensysAPI.swift        # Appels API (Injection commandes)
-│   └── Models/                      # Modèles de données (Config, Lighting, etc.)
-```
+Si vous aviez installé l'ancienne version (v1), vous pouvez la supprimer. Ses identifiants, qui étaient stockés en clair, sont effacés par la v2.
 
 ## Développement
 
+Swift 6 (concurrence stricte) et SwiftUI, iOS 18 minimum, Xcode 26.6. Le projet se trouve dans `EssensysApp/essensys-iphone/essensys-iphone.xcodeproj`.
+
 ### Prérequis
-- Xcode 14.0+
-- iOS 15.0+
 
-### Installation
-1. Ouvrir `essensys-iphone.xcodeproj`.
-2. Sélectionner la target `essensys-iphone`.
-3. Compiler et lancer (`Cmd + R`).
+- Xcode 26.6 avec la plateforme iOS 26.5 (`xcodebuild -downloadPlatform iOS`).
+- Si `simctl` bloque ou que Xcode signale « CoreSimulator is out of date », lancez une fois `sudo xcodebuild -runFirstLaunch`.
 
-### API Backend
-L'app communique avec le système via :
-- `GET /api/serverinfos` : Vérification de la connexion.
-- `POST /api/admin/inject` : Envoi des commandes (indices k/v).
+### Commandes
 
----
-*Note : L'application fonctionne en boucle ouverte pour certaines commandes, l'état affiché est celui supposé après action.*
+```bash
+cd EssensysApp/essensys-iphone
+xcodebuild -project essensys-iphone.xcodeproj -scheme essensys-iphone \
+  -destination 'platform=iOS Simulator,name=iPhone 17' test
+```
+
+- **Tests unitaires** (Swift Testing) : la couche data est testée contre un backend simulé (`URLProtocol`, hôtes `*.essensys.test`).
+- **Tests UI** (XCUITest) : l'app tourne avec un backend simulé embarqué (`UITEST_BACKEND=1`, builds DEBUG seulement).
+
+Les tests ne pilotent **jamais** une armoire réelle : `NoArmoireGuard` fait échouer toute commande envoyée vers un hôte réel.
+
+Les tests de non-régression portent l'identifiant `NR-ios-<n>` et la référence de leur issue. Ils reprennent les mêmes couples (k, v) que l'Android, et se consolident avec :
+
+```bash
+python3 ../essensys-feature-lifecycle/scripts/feature_lifecycle/xcresult_to_junit.py <résultat>.xcresult --out junit/unit.xml
+python3 ../essensys-feature-lifecycle/scripts/feature_lifecycle/nonreg_report.py --sources EssensysApp/essensys-iphone \
+  --out nonreg.json --markdown nonreg.md junit
+```
+
+### Architecture
+
+| Dossier | Rôle |
+|---|---|
+| `Data/HTTP` | `APIClient` (async/await), erreurs normalisées, garde no-armoire, TLS épinglé en LAN (`LanTrust`) |
+| `Data/Auth` | Connexion cloud (JWT) et LAN (cookie de session), changement de mot de passe, déconnexion |
+| `Data/Control` | `IndexTable` (indices et masques du portail, verrouillés par les tests NR) et envoi des commandes |
+| `Data/Session` | Session (Keychain, purge de la configuration v1), liaison, état de la gateway, dernière action |
+| `UI` | Thème du portail, composants, écrans, modèles observables |
+| `Debug` | Backend simulé pour les tests UI (DEBUG uniquement) |
+
+Gouvernance : chaque modification part d'un ticket du [GitHub Project Essensys](https://github.com/orgs/essensys-hub/projects/6), voir `essensys-feature-lifecycle/claude/GOVERNANCE.md`.
+
+Les documents `INDICES.md`, `LAMPES_LISTE.md`, `SETUP.md`, `STRUCTURE.md`, `TROUBLESHOOTING.md` et `VERIFICATION.md` décrivent la **v1** et sont conservés pour l'historique.
