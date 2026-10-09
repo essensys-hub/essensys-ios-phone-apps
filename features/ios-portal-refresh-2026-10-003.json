@@ -1,0 +1,108 @@
+{
+  "$schema": "./schema/feature.schema.json",
+  "id": "ios-portal-refresh-2026-10-003",
+  "title": "Refonte et mise à jour de l'application iPhone (parité portail)",
+  "status": "proposed",
+  "owner": "rhinosys",
+  "github": {
+    "issue": "essensys-hub/essensys-feature-lifecycle#13",
+    "project_item": "PVTI_lADODqt0Wc4BavHTzg_truE"
+  },
+  "git": {
+    "branch": "feat/ios-portal-refresh-2026-10-003",
+    "pr_url": null
+  },
+  "openspec": {
+    "change_id": "ios-portal-refresh-2026-10-003",
+    "path": "openspec/changes/ios-portal-refresh-2026-10-003",
+    "proposal": "openspec/changes/ios-portal-refresh-2026-10-003/proposal.md",
+    "design": "openspec/changes/ios-portal-refresh-2026-10-003/design.md",
+    "tasks": "openspec/changes/ios-portal-refresh-2026-10-003/tasks.md",
+    "specs": [
+      "openspec/changes/ios-portal-refresh-2026-10-003/specs/connection-modes/spec.md",
+      "openspec/changes/ios-portal-refresh-2026-10-003/specs/domotic-controls/spec.md",
+      "openspec/changes/ios-portal-refresh-2026-10-003/specs/ios-quality/spec.md",
+      "openspec/changes/ios-portal-refresh-2026-10-003/specs/mobile-auth/spec.md",
+      "openspec/changes/ios-portal-refresh-2026-10-003/specs/portal-theme/spec.md"
+    ]
+  },
+  "implementation": {
+    "paths": [
+      "EssensysApp/essensys-iphone/Models/ConnectionConfig.swift",
+      "EssensysApp/essensys-iphone/Services/ConnectionManager.swift",
+      "EssensysApp/essensys-iphone/Services/EssensysAPI.swift",
+      "EssensysApp/essensys-iphone/Views/AlarmView.swift",
+      "EssensysApp/essensys-iphone/Views/ConfigurationView.swift",
+      "EssensysApp/essensys-iphone/Views/HeatingView.swift",
+      "EssensysApp/essensys-iphone/Views/HomeView.swift",
+      "EssensysApp/essensys-iphone/Views/LightingView.swift",
+      "EssensysApp/essensys-iphone/Views/ShuttersView.swift",
+      "EssensysApp/essensys-iphone/Views/WateringView.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/ContentView.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone/essensys_iphoneApp.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/essensys_iphoneTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneUITests/essensys_iphoneUITests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneUITests/essensys_iphoneUITestsLaunchTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphone.xcodeproj/project.pbxproj"
+    ],
+    "primary_surface": "ios"
+  },
+  "userguide": {
+    "pages": [
+      "README.md"
+    ],
+    "language": "fr",
+    "i18n_keys": [],
+    "screenshots": []
+  },
+  "tests": {
+    "playwright": [],
+    "junit": [
+      "EssensysApp/essensys-iphone/essensys-iphoneTests/essensys_iphoneTests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneUITests/essensys_iphoneUITests.swift",
+      "EssensysApp/essensys-iphone/essensys-iphoneUITests/essensys_iphoneUITestsLaunchTests.swift"
+    ],
+    "coverage_must_test": [
+      "cloud login stores jwt and shows home",
+      "unauthorized response clears session and shows login",
+      "password change required blocks app until changed",
+      "no demo fallback when server unreachable",
+      "lighting sends portal index and mask",
+      "shutters send portal index and mask",
+      "dry run header sent in test mode",
+      "no armoire guard blocks real mutation",
+      "lighting command is sent once on double tap",
+      "lan host in cleartext is refused"
+    ],
+    "smoke_tags": [
+      "@nr"
+    ]
+  },
+  "release": {
+    "changelog_entry": "iPhone 2.0.0 : refonte alignée sur le portail et l'Android v2 (auth JWT cloud + LAN, éclairage, volets, thème clair/sombre), distribution TestFlight.",
+    "target_tag": "ios-v2.0.0",
+    "surfaces": [
+      "ios"
+    ],
+    "paths": []
+  },
+  "security": {
+    "sca_tool": "dependabot+trivy",
+    "dependabot_alerts_url": "https://github.com/essensys-hub/essensys-ios-phone-apps/security/dependabot",
+    "last_scan_at": null,
+    "cve_findings": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "secret_scan": {
+      "status": "warning",
+      "tool": "gitleaks",
+      "last_scan_at": null
+    },
+    "muted_findings": [],
+    "threat_model_url": null,
+    "owner_security": "rhinosys"
+  }
+}
