@@ -1,0 +1,640 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		CCB6132B2F0DBB82002B39B7 /* HeatingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB6132A2F0DBB82002B39B7 /* HeatingView.swift */; };
+		CCB6132D2F0DBCC7002B39B7 /* WateringView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCB6132C2F0DBCC7002B39B7 /* WateringView.swift */; };
+		CCEB5EFE2F09919C00C0A697 /* ConnectionConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EF42F09919C00C0A697 /* ConnectionConfig.swift */; };
+		CCEB5EFF2F09919C00C0A697 /* AlarmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EF92F09919C00C0A697 /* AlarmView.swift */; };
+		CCEB5F002F09919C00C0A697 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EFB2F09919C00C0A697 /* HomeView.swift */; };
+		CCEB5F012F09919C00C0A697 /* EssensysAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EF72F09919C00C0A697 /* EssensysAPI.swift */; };
+		CCEB5F022F09919C00C0A697 /* LightingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EFC2F09919C00C0A697 /* LightingView.swift */; };
+		CCEB5F032F09919C00C0A697 /* ConfigurationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EFA2F09919C00C0A697 /* ConfigurationView.swift */; };
+		CCEB5F042F09919C00C0A697 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5EF62F09919C00C0A697 /* ConnectionManager.swift */; };
+		CCEB5F052F09919C00C0A697 /* ShuttersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCEB5F062F09919C00C0A697 /* ShuttersView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CC3222682F098A23004DF5DE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CC32224F2F098A21004DF5DE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CC3222562F098A21004DF5DE;
+			remoteInfo = "essensys-iphone";
+		};
+		CC3222722F098A23004DF5DE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CC32224F2F098A21004DF5DE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CC3222562F098A21004DF5DE;
+			remoteInfo = "essensys-iphone";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		CC3222572F098A21004DF5DE /* essensys-iphone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "essensys-iphone.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC3222672F098A23004DF5DE /* essensys-iphoneTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "essensys-iphoneTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC3222712F098A23004DF5DE /* essensys-iphoneUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "essensys-iphoneUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CCB6132A2F0DBB82002B39B7 /* HeatingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeatingView.swift; sourceTree = "<group>"; };
+		CCB6132C2F0DBCC7002B39B7 /* WateringView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WateringView.swift; sourceTree = "<group>"; };
+		CCEB5EF42F09919C00C0A697 /* ConnectionConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionConfig.swift; sourceTree = "<group>"; };
+		CCEB5EF62F09919C00C0A697 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
+		CCEB5EF72F09919C00C0A697 /* EssensysAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EssensysAPI.swift; sourceTree = "<group>"; };
+		CCEB5EF92F09919C00C0A697 /* AlarmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmView.swift; sourceTree = "<group>"; };
+		CCEB5EFA2F09919C00C0A697 /* ConfigurationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationView.swift; sourceTree = "<group>"; };
+		CCEB5EFB2F09919C00C0A697 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		CCEB5EFC2F09919C00C0A697 /* LightingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightingView.swift; sourceTree = "<group>"; };
+		CCEB5F062F09919C00C0A697 /* ShuttersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuttersView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		CC3222592F098A21004DF5DE /* essensys-iphone */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "essensys-iphone";
+			sourceTree = "<group>";
+		};
+		CC32226A2F098A23004DF5DE /* essensys-iphoneTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "essensys-iphoneTests";
+			sourceTree = "<group>";
+		};
+		CC3222742F098A23004DF5DE /* essensys-iphoneUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "essensys-iphoneUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CC3222542F098A21004DF5DE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC3222642F098A23004DF5DE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC32226E2F098A23004DF5DE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CC32224E2F098A21004DF5DE = {
+			isa = PBXGroup;
+			children = (
+				CCEB5EF52F09919C00C0A697 /* Models */,
+				CCEB5EF82F09919C00C0A697 /* Services */,
+				CCEB5EFD2F09919C00C0A697 /* Views */,
+				CC3222592F098A21004DF5DE /* essensys-iphone */,
+				CC32226A2F098A23004DF5DE /* essensys-iphoneTests */,
+				CC3222742F098A23004DF5DE /* essensys-iphoneUITests */,
+				CC3222582F098A21004DF5DE /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CC3222582F098A21004DF5DE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CC3222572F098A21004DF5DE /* essensys-iphone.app */,
+				CC3222672F098A23004DF5DE /* essensys-iphoneTests.xctest */,
+				CC3222712F098A23004DF5DE /* essensys-iphoneUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CCEB5EF52F09919C00C0A697 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				CCEB5EF42F09919C00C0A697 /* ConnectionConfig.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		CCEB5EF82F09919C00C0A697 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				CCEB5EF62F09919C00C0A697 /* ConnectionManager.swift */,
+				CCEB5EF72F09919C00C0A697 /* EssensysAPI.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		CCEB5EFD2F09919C00C0A697 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				CCB6132C2F0DBCC7002B39B7 /* WateringView.swift */,
+				CCB6132A2F0DBB82002B39B7 /* HeatingView.swift */,
+				CCEB5EF92F09919C00C0A697 /* AlarmView.swift */,
+				CCEB5EFA2F09919C00C0A697 /* ConfigurationView.swift */,
+				CCEB5EFB2F09919C00C0A697 /* HomeView.swift */,
+				CCEB5EFC2F09919C00C0A697 /* LightingView.swift */,
+				CCEB5F062F09919C00C0A697 /* ShuttersView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		CC3222562F098A21004DF5DE /* essensys-iphone */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC32227B2F098A23004DF5DE /* Build configuration list for PBXNativeTarget "essensys-iphone" */;
+			buildPhases = (
+				CC3222532F098A21004DF5DE /* Sources */,
+				CC3222542F098A21004DF5DE /* Frameworks */,
+				CC3222552F098A21004DF5DE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CC3222592F098A21004DF5DE /* essensys-iphone */,
+			);
+			name = "essensys-iphone";
+			packageProductDependencies = (
+			);
+			productName = "essensys-iphone";
+			productReference = CC3222572F098A21004DF5DE /* essensys-iphone.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CC3222662F098A23004DF5DE /* essensys-iphoneTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC32227E2F098A23004DF5DE /* Build configuration list for PBXNativeTarget "essensys-iphoneTests" */;
+			buildPhases = (
+				CC3222632F098A23004DF5DE /* Sources */,
+				CC3222642F098A23004DF5DE /* Frameworks */,
+				CC3222652F098A23004DF5DE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CC3222692F098A23004DF5DE /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CC32226A2F098A23004DF5DE /* essensys-iphoneTests */,
+			);
+			name = "essensys-iphoneTests";
+			packageProductDependencies = (
+			);
+			productName = "essensys-iphoneTests";
+			productReference = CC3222672F098A23004DF5DE /* essensys-iphoneTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CC3222702F098A23004DF5DE /* essensys-iphoneUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC3222812F098A23004DF5DE /* Build configuration list for PBXNativeTarget "essensys-iphoneUITests" */;
+			buildPhases = (
+				CC32226D2F098A23004DF5DE /* Sources */,
+				CC32226E2F098A23004DF5DE /* Frameworks */,
+				CC32226F2F098A23004DF5DE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CC3222732F098A23004DF5DE /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CC3222742F098A23004DF5DE /* essensys-iphoneUITests */,
+			);
+			name = "essensys-iphoneUITests";
+			packageProductDependencies = (
+			);
+			productName = "essensys-iphoneUITests";
+			productReference = CC3222712F098A23004DF5DE /* essensys-iphoneUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		CC32224F2F098A21004DF5DE /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					CC3222562F098A21004DF5DE = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					CC3222662F098A23004DF5DE = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = CC3222562F098A21004DF5DE;
+					};
+					CC3222702F098A23004DF5DE = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = CC3222562F098A21004DF5DE;
+					};
+				};
+			};
+			buildConfigurationList = CC3222522F098A21004DF5DE /* Build configuration list for PBXProject "essensys-iphone" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CC32224E2F098A21004DF5DE;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = CC3222582F098A21004DF5DE /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				CC3222562F098A21004DF5DE /* essensys-iphone */,
+				CC3222662F098A23004DF5DE /* essensys-iphoneTests */,
+				CC3222702F098A23004DF5DE /* essensys-iphoneUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CC3222552F098A21004DF5DE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC3222652F098A23004DF5DE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC32226F2F098A23004DF5DE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CC3222532F098A21004DF5DE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CCB6132B2F0DBB82002B39B7 /* HeatingView.swift in Sources */,
+				CCEB5EFE2F09919C00C0A697 /* ConnectionConfig.swift in Sources */,
+				CCEB5EFF2F09919C00C0A697 /* AlarmView.swift in Sources */,
+				CCB6132D2F0DBCC7002B39B7 /* WateringView.swift in Sources */,
+				CCEB5F002F09919C00C0A697 /* HomeView.swift in Sources */,
+				CCEB5F012F09919C00C0A697 /* EssensysAPI.swift in Sources */,
+				CCEB5F022F09919C00C0A697 /* LightingView.swift in Sources */,
+				CCEB5F032F09919C00C0A697 /* ConfigurationView.swift in Sources */,
+				CCEB5F042F09919C00C0A697 /* ConnectionManager.swift in Sources */,
+				CCEB5F052F09919C00C0A697 /* ShuttersView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC3222632F098A23004DF5DE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CC32226D2F098A23004DF5DE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CC3222692F098A23004DF5DE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CC3222562F098A21004DF5DE /* essensys-iphone */;
+			targetProxy = CC3222682F098A23004DF5DE /* PBXContainerItemProxy */;
+		};
+		CC3222732F098A23004DF5DE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CC3222562F098A21004DF5DE /* essensys-iphone */;
+			targetProxy = CC3222722F098A23004DF5DE /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		CC3222792F098A23004DF5DE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		CC32227A2F098A23004DF5DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CC32227C2F098A23004DF5DE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_ASSET_PATHS = "\"essensys-iphone/Preview Content\"";
+				DEVELOPMENT_TEAM = J32285QB9J;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ../Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "mon essensys";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "essensys.essensys-iphone";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		CC32227D2F098A23004DF5DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_ASSET_PATHS = "\"essensys-iphone/Preview Content\"";
+				DEVELOPMENT_TEAM = J32285QB9J;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ../Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "mon essensys";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "essensys.essensys-iphone";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		CC32227F2F098A23004DF5DE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "essensys.essensys-iphoneTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/essensys-iphone.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/essensys-iphone";
+			};
+			name = Debug;
+		};
+		CC3222802F098A23004DF5DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "essensys.essensys-iphoneTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/essensys-iphone.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/essensys-iphone";
+			};
+			name = Release;
+		};
+		CC3222822F098A23004DF5DE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "essensys.essensys-iphoneUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "essensys-iphone";
+			};
+			name = Debug;
+		};
+		CC3222832F098A23004DF5DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "essensys.essensys-iphoneUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "essensys-iphone";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CC3222522F098A21004DF5DE /* Build configuration list for PBXProject "essensys-iphone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC3222792F098A23004DF5DE /* Debug */,
+				CC32227A2F098A23004DF5DE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CC32227B2F098A23004DF5DE /* Build configuration list for PBXNativeTarget "essensys-iphone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC32227C2F098A23004DF5DE /* Debug */,
+				CC32227D2F098A23004DF5DE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CC32227E2F098A23004DF5DE /* Build configuration list for PBXNativeTarget "essensys-iphoneTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC32227F2F098A23004DF5DE /* Debug */,
+				CC3222802F098A23004DF5DE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CC3222812F098A23004DF5DE /* Build configuration list for PBXNativeTarget "essensys-iphoneUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC3222822F098A23004DF5DE /* Debug */,
+				CC3222832F098A23004DF5DE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = CC32224F2F098A21004DF5DE /* Project object */;
+}
