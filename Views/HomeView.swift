@@ -19,29 +19,7 @@ struct HomeView: View {
                 // Info Banner
                 InfoBanner()
                 
-                // Quick Actions
-                Button(action: {
-                    EssensysAPI.shared.sendInjection(k: 545, v: "2") { _ in }
-                }) {
-                    HStack {
-                        Image(systemName: "door.left.hand.open")
-                            .font(.title2)
-                        VStack(alignment: .leading) {
-                            Text("Je Pars")
-                                .font(.headline)
-                            Text("Éteindre toutes les lumières")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                    }
-                    .padding()
-                    .foregroundColor(.white)
-                    .background(Color.blue)
-                    .cornerRadius(12)
-                }
-
+                
                 
                 // Search Bar
                 /*HStack {
@@ -98,7 +76,7 @@ struct LightingScenesSection: View {
     @State private var errorMessage = ""
     
     let scenes: [LightingScene] = [
-        LightingScene(
+        /*LightingScene(
             id: "reveil",
             name: "Réveil",
             icon: "sun.max.fill",
@@ -111,20 +89,20 @@ struct LightingScenesSection: View {
             icon: "sofa.fill",
             description: "Allume : Salon indirect 1 & 2",
             actions: [(k: 617, v: "4"), (k: 618, v: "4")]
-        ),
+        ),*/
         LightingScene(
             id: "nuit",
             name: "Nuit",
             icon: "moon.fill",
             description: "Éteint : tout",
-            actions: [(k: 610, v: "4")]
+            actions: [(k: 590, v: "2")]
         ),
         LightingScene(
             id: "depart",
             name: "Départ",
             icon: "door.left.hand.open",
-            description: "Éteint : tout sauf le couloir",
-            actions: [(k: 545, v: "2")]
+            description: "Éteint : tout",
+            actions: [(k: 590, v: "2")]
         )
     ]
     
