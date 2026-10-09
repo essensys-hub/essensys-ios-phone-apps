@@ -41,8 +41,15 @@ final class APIClient: Sendable {
         await execute(method: "GET", path: path, body: nil)
     }
 
+    /// Clés triées : corps déterministes ({"k":…,"v":…}), comparables entre iOS, Android et les tests.
+    private static func encoder() -> JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        return encoder
+    }
+
     func send<Body: Encodable>(_ method: String, _ path: String, body: Body?) async -> Result<RawResponse, APIError> {
-        let data = body.flatMap { try? JSONEncoder().encode($0) }
+        let data = body.flatMap { try? Self.encoder().encode($0) }
         return await execute(method: method, path: path, body: data)
     }
 
