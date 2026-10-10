@@ -20,9 +20,6 @@ concurrency:
 jobs:
   build-test:
     runs-on: macos-26
-    defaults:
-      run:
-        working-directory: EssensysApp/essensys-iphone
     steps:
       - uses: actions/checkout@v7
 
@@ -47,12 +44,11 @@ jobs:
 
       - name: Rapport de non-régression
         id: nonreg
-        working-directory: .
         run: |
           mkdir -p .artifacts
           set +e
           python3 .lifecycle/scripts/feature_lifecycle/xcresult_to_junit.py "$RUNNER_TEMP/unit.xcresult" --out .artifacts/junit/unit.xml
-          python3 .lifecycle/scripts/feature_lifecycle/nonreg_report.py --sources EssensysApp/essensys-iphone \
+          python3 .lifecycle/scripts/feature_lifecycle/nonreg_report.py --sources . \
             --out .artifacts/nonreg.json --markdown .artifacts/nonreg.md .artifacts/junit
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
@@ -64,7 +60,6 @@ jobs:
           retention-days: 90
 
       - name: Échec si tests ou rapport NR en erreur
-        working-directory: .
         run: |
           if [ "${{ steps.unit.outcome }}" != "success" ]; then echo "Tests unitaires en échec"; exit 1; fi
           if [ "${{ steps.nonreg.outputs.exit_code }}" != "0" ]; then echo "Rapport NR en erreur"; exit 1; fi

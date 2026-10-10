@@ -41,17 +41,28 @@ Si vous aviez installé l'ancienne version (v1), vous pouvez la supprimer. Ses i
 
 ## Développement
 
-Swift 6 (concurrence stricte) et SwiftUI, iOS 18 minimum, Xcode 26.6. Le projet se trouve dans `EssensysApp/essensys-iphone/essensys-iphone.xcodeproj`.
+Swift 6 (concurrence stricte) et SwiftUI, iOS 18 minimum, Xcode 26.6. Le projet Xcode `essensys-iphone.xcodeproj` est à la racine du dépôt (attendu par Xcode Cloud).
 
 ### Prérequis
 
 - Xcode 26.6 avec la plateforme iOS 26.5 (`xcodebuild -downloadPlatform iOS`).
 - Si `simctl` bloque ou que Xcode signale « CoreSimulator is out of date », lancez une fois `sudo xcodebuild -runFirstLaunch`.
 
+### Publier une build TestFlight
+
+```bash
+xcodebuild -project essensys-iphone.xcodeproj -scheme essensys-iphone -configuration Release \
+  -destination 'generic/platform=iOS' -archivePath build/essensys.xcarchive archive -allowProvisioningUpdates
+# PATH système : le rsync de Homebrew (3.x) casse la création de l'IPA (« Copy failed »).
+env PATH=/usr/bin:/bin:/usr/sbin:/sbin xcodebuild -exportArchive -archivePath build/essensys.xcarchive \
+  -exportOptionsPlist ExportOptions.plist -exportPath build/export -allowProvisioningUpdates
+```
+
+`ExportOptions.plist` : `method` = `app-store-connect`, `destination` = `upload`, `teamID` = `J32285QB9J`, signature automatique. Il faut le compte Apple connecté dans Xcode et l'accord de licence du programme à jour. Incrémentez `CURRENT_PROJECT_VERSION` avant chaque nouvel envoi.
+
 ### Commandes
 
 ```bash
-cd EssensysApp/essensys-iphone
 xcodebuild -project essensys-iphone.xcodeproj -scheme essensys-iphone \
   -destination 'platform=iOS Simulator,name=iPhone 17' test
 ```
@@ -65,7 +76,7 @@ Les tests de non-régression portent l'identifiant `NR-ios-<n>` et la référenc
 
 ```bash
 python3 ../essensys-feature-lifecycle/scripts/feature_lifecycle/xcresult_to_junit.py <résultat>.xcresult --out junit/unit.xml
-python3 ../essensys-feature-lifecycle/scripts/feature_lifecycle/nonreg_report.py --sources EssensysApp/essensys-iphone \
+python3 ../essensys-feature-lifecycle/scripts/feature_lifecycle/nonreg_report.py --sources . \
   --out nonreg.json --markdown nonreg.md junit
 ```
 
