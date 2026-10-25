@@ -44,7 +44,7 @@ struct ActionButton: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 if loading { ProgressView().controlSize(.small).tint(tone == .secondary ? colors.primary : .white) }
-                Text(label).lineLimit(1).font(compact ? .subheadline.weight(.medium) : .body.weight(.medium))
+                Text(label).lineLimit(1).minimumScaleFactor(0.75).font(compact ? .subheadline.weight(.medium) : .body.weight(.medium))
             }
             .padding(.horizontal, compact ? 12 : 16).padding(.vertical, compact ? 8 : 11)
             .frame(maxWidth: compact ? nil : .infinity)

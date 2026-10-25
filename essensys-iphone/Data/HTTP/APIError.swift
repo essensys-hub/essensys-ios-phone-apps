@@ -13,6 +13,10 @@ enum APIError: Error, Equatable, Sendable {
     case rateLimited
     case http(status: Int, code: String?, text: String?)
     case network(host: String, cause: String?)
+    /// Fonction absente de la gateway LAN (alarme) : aucun appel réseau n'est fait.
+    case cloudOnly
+    /// Requête refusée par l'app avant tout envoi (lot trop gros, indice hors bloc, définition incomplète).
+    case invalidRequest(String)
 
     /// Échec TLS en LAN : certificat non confirmé ou différent de celui épinglé (design D4).
     var isCertificateProblem: Bool {
@@ -36,6 +40,10 @@ enum APIError: Error, Equatable, Sendable {
         case let .http(status, _, text):
             if let text, !text.isEmpty { return text }
             return "Erreur serveur (\(status))."
+        case .cloudOnly:
+            return "Disponible en mode cloud seulement."
+        case let .invalidRequest(reason):
+            return "Commande refusée par l'application : \(reason)."
         case let .network(host, _):
             return isCertificateProblem
                 ? "Le certificat de la gateway (\(host)) n'est pas celui confirmé. Connexion bloquée."

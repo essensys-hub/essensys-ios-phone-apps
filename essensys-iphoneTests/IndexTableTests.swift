@@ -84,4 +84,46 @@ struct IndexTableTests {
     @Test func travel_time_indices_are_in_legacy_range() {
         for shutter in IndexTable.shutters { #expect((566...589).contains(shutter.travelTimeIndex), "\(shutter.id)") }
     }
+
+    // NR: NR-ios-10 essensys-hub/essensys-ios-phone-apps#11
+    @Test func heating_zones_use_portal_indices_NR_ios_10() {
+        let golden: [(String, Int, Int)] = [("jour", 13, 349), ("nuit", 97, 350), ("sdb1", 181, 351), ("sdb2", 265, 352)]
+        #expect(IndexTable.heatingZones.map(\.id) == golden.map(\.0))
+        for (zone, (_, start, mode)) in zip(IndexTable.heatingZones, golden) {
+            #expect(zone.scheduleIndices == start..<(start + 84), "\(zone.id)")
+            #expect(zone.modeIndex == mode, "\(zone.id)")
+        }
+        // Les 4 plannings se suivent sans trou ni chevauchement (13–348), puis les modes 349–352.
+        #expect(IndexTable.heatingZones.flatMap { Array($0.scheduleIndices) } == Array(13...348))
+        let goldenModes = ["AUTO": 1, "ANTICIPATED": 32, "FORCE_CONFORT": 17, "FORCE_ECO": 18,
+                           "FORCE_ECO_PLUS": 19, "FORCE_ECO_PLUS_PLUS": 20, "FROST": 21, "OFF": 16]
+        #expect(Dictionary(uniqueKeysWithValues: IndexTable.ImmediateMode.allCases.map { ($0.name, $0.rawValue) }) == goldenModes)
+        #expect(IndexTable.heatingZones.map(\.allowsAnticipated) == [true, true, false, false])
+    }
+
+    // NR: NR-ios-11 essensys-hub/essensys-ios-phone-apps#11
+    @Test func water_heater_and_sprinkler_use_firmware_indices_NR_ios_11() {
+        #expect(IndexTable.WaterHeaterMode.allCases.map(\.command) == [
+            Injection(k: 353, v: "0"), Injection(k: 353, v: "1"), Injection(k: 353, v: "2"),
+        ])
+        #expect(IndexTable.SprinklerMode.allCases.map(\.command) == [
+            Injection(k: 363, v: "255"), Injection(k: 363, v: "15"), Injection(k: 363, v: "30"),
+            Injection(k: 363, v: "60"), Injection(k: 363, v: "0"),
+        ])
+        // Les indices du portail (400–402, 500–504) sont absents du firmware : jamais envoyés.
+        let sent = IndexTable.WaterHeaterMode.allCases.map(\.command.k) + IndexTable.SprinklerMode.allCases.map(\.command.k)
+        #expect(!sent.contains { (400...402).contains($0) || (500...504).contains($0) })
+    }
+
+    @Test func scenario_blocks_follow_backend_layout() {
+        #expect(IndexTable.scenarioBlock(1) == 592...632)
+        #expect(IndexTable.scenarioBlock(4) == 715...755)
+        #expect(IndexTable.scenarioBlock(8) == 879...919)
+    }
+
+    @Test func anticipated_mode_is_refused_for_bathrooms() {
+        let sdb2 = IndexTable.heatingZones.first { $0.id == "sdb2" }!
+        #expect(!sdb2.immediateModes.contains(.anticipated))
+        #expect(sdb2.command(.anticipated) == nil)
+    }
 }
