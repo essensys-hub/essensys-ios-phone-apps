@@ -1,21 +1,27 @@
 # Essensys iPhone
 
-L'application iPhone officielle pour piloter une installation domotique Essensys. Elle reprend l'apparence et le fonctionnement du portail web, en **cloud** (`mon.essensys.fr`) ou directement sur le **réseau local** (gateway `mon.essensys.local`). C'est la jumelle de l'[app Android v2.0.0](https://github.com/essensys-hub/essensys-android-phone-apps) : mêmes écrans, mêmes commandes.
+L'application iPhone officielle pour piloter une installation domotique Essensys. Elle reprend l'apparence et le fonctionnement du portail web, en **cloud** (`mon.essensys.fr`) ou directement sur le **réseau local** (gateway `mon.essensys.local`). C'est la jumelle de l'[app Android](https://github.com/essensys-hub/essensys-android-phone-apps) : mêmes écrans, mêmes commandes.
 
-> **Version 2.0.0** (change OpenSpec `ios-portal-refresh-2026-10-003`, ticket [essensys-feature-lifecycle#13](https://github.com/essensys-hub/essensys-feature-lifecycle/issues/13)). Refonte complète de la v1.
+> **Version 2.1.0** (en cours, change OpenSpec `mobile-portal-parity-2026-10-010`, ticket [essensys-feature-lifecycle#35](https://github.com/essensys-hub/essensys-feature-lifecycle/issues/35)) : toutes les fonctions du portail utiles à l'occupant, identiques à l'Android 2.1.0. La v2.0.0 (refonte complète de la v1) venait du change `ios-portal-refresh-2026-10-003` ([#13](https://github.com/essensys-hub/essensys-feature-lifecycle/issues/13)).
 
-## Fonctionnalités (V1)
+## Fonctionnalités
 
 - **Connexion cloud** avec votre compte du portail (email et mot de passe), y compris le changement obligatoire d'un mot de passe temporaire.
 - **Connexion réseau local** directement à la gateway, en HTTPS uniquement. Le certificat de la gateway est confirmé une seule fois, à la première connexion.
 - **Liaison de l'armoire** : un compte sans armoire liée peut demander la liaison depuis l'application.
+- **Accueil** : scénarios rapides (Je sors, Je rentre, Je vais me coucher, Je me lève) et une tuile par fonction.
 - **Éclairage** : par pièce, éclairage principal et indirect, « tout allumer » et « tout éteindre ».
 - **Volets et stores** : par volet, par groupe ou tous, avec le temps de course configuré.
-- **État de l'armoire** (en ligne ou hors ligne) et **dernière action** en cloud. Les commandes sont désactivées quand l'armoire est hors ligne.
+- **Chauffage** : planning hebdomadaire des 4 zones (jour, nuit, salles de bain), modifiable heure par heure, et mode immédiat (automatique, anticipé, forçages, hors gel, arrêt). En réseau local, le planning peut être relu directement depuis l'armoire.
+- **Scénarios** : lancement des scénarios 2 à 8, retour aux réglages d'usine (2 à 6) et choix des lumières et volets commandés.
+- **Chauffe-eau** : marche permanente, heures creuses ou arrêt.
+- **Arrosage** : automatique, 15, 30 ou 60 minutes, ou arrêt.
+- **Alarme** (cloud seulement) : mise en service et arrêt avec le code à 4 chiffres, jamais conservé par l'application. Masquée dans les builds Release (TestFlight) tant que la commande n'a pas été validée sur une armoire de test.
+- **État de l'armoire** (en ligne ou hors ligne) et **dernière action** en cloud. Les commandes sont désactivées quand l'armoire est hors ligne ; les plannings restent consultables.
 - **Mode test** : le serveur valide les commandes sans que l'armoire les exécute.
 - **Thème** Système, Clair ou Sombre, avec la charte du portail.
 
-Le chauffage, les scénarios, le chauffe-eau, l'arrosage et l'alarme arrivent dans la prochaine version. En attendant, ils restent accessibles depuis le portail web.
+Les notifications SMS et email et les caméras UniFi Protect restent accessibles depuis le portail web.
 
 ## Aperçu
 
@@ -26,6 +32,10 @@ Le chauffage, les scénarios, le chauffe-eau, l'arrosage et l'alarme arrivent da
 | Mot de passe temporaire | Liaison armoire | Éclairage (sombre) | Réglages (sombre) |
 |---|---|---|---|
 | ![Mot de passe](img/v2/05-password-change.png) | ![Liaison](img/v2/06-link.png) | ![Éclairage sombre](img/v2/07-lighting-dark.png) | ![Réglages](img/v2/08-settings-dark.png) |
+
+| Chauffage | Chauffage (sombre) | Scénarios | Chauffe-eau |
+|---|---|---|---|
+| ![Chauffage](img/v2/09-heating-light.png) | ![Chauffage sombre](img/v2/13-heating-dark.png) | ![Scénarios](img/v2/11-scenarios-light.png) | ![Chauffe-eau](img/v2/12-water-heater-light.png) |
 
 ## Installation (testeurs, via TestFlight)
 
