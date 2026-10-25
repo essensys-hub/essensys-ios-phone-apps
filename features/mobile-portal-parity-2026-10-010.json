@@ -24,7 +24,8 @@
       "openspec/changes/mobile-portal-parity-2026-10-010/specs/heating-control/spec.md",
       "openspec/changes/mobile-portal-parity-2026-10-010/specs/home-dashboard/spec.md",
       "openspec/changes/mobile-portal-parity-2026-10-010/specs/parity-quality/spec.md",
-      "openspec/changes/mobile-portal-parity-2026-10-010/specs/scenarios/spec.md"
+      "openspec/changes/mobile-portal-parity-2026-10-010/specs/scenarios/spec.md",
+      "openspec/changes/mobile-portal-parity-2026-10-010/specs/shutter-travel-time/spec.md"
     ]
   },
   "implementation": {
@@ -47,7 +48,10 @@
       "essensys-iphone/UI/Screens/MainScreens.swift",
       "essensys-iphone/UI/Screens/HeatingScreen.swift",
       "essensys-iphone/UI/Screens/FeatureScreens.swift",
-      "essensys-iphone.xcodeproj/project.pbxproj"
+      "essensys-iphone.xcodeproj/project.pbxproj",
+      "essensys-iphone/UI/ControlModel.swift",
+      "essensys-iphone/UI/Screens/ControlScreens.swift",
+      "essensys-iphone/UI/Components.swift"
     ],
     "primary_surface": "ios"
   },
@@ -92,7 +96,8 @@
       "alarm code is never logged or stored",
       "alarm is cloud only",
       "no armoire guard blocks new mutation routes",
-      "offline disables quick scenarios but tiles stay open"
+      "offline disables quick scenarios but tiles stay open",
+      "travel time command uses shutter index and range"
     ],
     "smoke_tags": [
       "@nr"

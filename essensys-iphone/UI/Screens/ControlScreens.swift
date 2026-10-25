@@ -107,7 +107,44 @@ struct ShuttersScreen: View {
                     }
                 }
             }
+            TravelTimeCard(model: model, enabled: enabled)
         }
         .task { await model.loadTravelTimes() }
+    }
+}
+
+/// Réglage du temps de course, comme la carte « Temps de course » du portail (spec shutter-travel-time).
+private struct TravelTimeCard: View {
+    let model: ControlModel
+    let enabled: Bool
+    @State private var edited: [String: String] = [:]
+    @Environment(\.essensys) private var colors
+
+    var body: some View {
+        EssensysCard(title: "Temps de course", description: "Durée de commande du moteur, à l'ouverture et à la fermeture (1 à 255 secondes)") {
+            ForEach(IndexTable.shutters) { shutter in
+                HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(shutter.name).font(.subheadline).foregroundStyle(colors.text)
+                        Text(model.travelTimes[shutter.travelTimeIndex].map { "Actuel : \($0) s" } ?? "Non transmis (défaut usine : 120 s, store : 255 s)")
+                            .font(.caption).foregroundStyle(colors.textMuted)
+                            .accessibilityIdentifier("time-current-\(shutter.id)")
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    TextField("s", text: Binding(get: { edited[shutter.id] ?? "" },
+                                                 set: { edited[shutter.id] = String($0.filter(\.isNumber).prefix(3)) }))
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.center)
+                        .frame(width: 64).padding(.vertical, 8)
+                        .overlay(RoundedRectangle(cornerRadius: Radius.button).stroke(colors.border))
+                        .accessibilityIdentifier("time-input-\(shutter.id)")
+                    ActionButton(label: "OK", loading: model.inFlight.contains("time-\(shutter.id)"),
+                                 enabled: enabled && !(edited[shutter.id] ?? "").isEmpty, compact: true) {
+                        if model.saveTravelTime(shutter, raw: edited[shutter.id] ?? "") { edited[shutter.id] = nil }
+                    }
+                    .accessibilityIdentifier("time-save-\(shutter.id)")
+                }
+            }
+        }
     }
 }

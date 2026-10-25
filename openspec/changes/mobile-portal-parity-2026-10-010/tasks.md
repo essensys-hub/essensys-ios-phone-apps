@@ -37,3 +37,8 @@
 - [ ] 6.2 `/checkup essensys-ios-phone-apps` vert, captures clair et sombre des nouveaux écrans postées sur #35
 - [x] 6.3 README (fonctionnalités, captures) mis à jour et `MARKETING_VERSION` 2.1.0 ; vérifier le rendu du README
 - [ ] 6.4 Build 2.1.0 envoyée sur TestFlight et distribuée au groupe famille ; vérifier dans App Store Connect
+
+## 7. Temps de course des volets (#18)
+
+- [x] 7.1 Commande du temps de course dans `IndexTable` (indice du volet, valeur 1–255, refus hors plage) ; vérifier par `NR-ios-17` (`k=566, v="30"` pour Volet 1 Salon, 0 et 256 refusés)
+- [x] 7.2 Carte « Temps de course » de l'écran Volets : champ par volet, valeur actuelle ou défaut usine, Enregistrer désactivé hors ligne, message « Entre 1 et 255 secondes » ; vérifier par un test UI (30 s envoyé puis affiché, 300 refusé)

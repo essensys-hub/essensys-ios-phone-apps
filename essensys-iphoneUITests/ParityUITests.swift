@@ -194,6 +194,42 @@ final class ParityUITests: XCTestCase {
         XCTAssertFalse(put.contains(#""605""#), put)
     }
 
+    // MARK: Temps de course des volets (spec shutter-travel-time)
+
+    @MainActor func test_travel_time_is_sent_then_displayed_and_out_of_range_refused() {
+        let app = launch()
+        openHome(app)
+        app.tabBars.buttons["Volets"].tap()
+        let current = app.staticTexts["time-current-volet1salon"]
+        XCTAssertTrue(current.waitForExistence(timeout: 10))
+        XCTAssertTrue(waitFor { current.label == "Actuel : 25 s" })
+        XCTAssertEqual(app.staticTexts["time-current-volet2salon"].label, "Non transmis (défaut usine : 120 s, store : 255 s)")
+        let field = app.textFields["time-input-volet1salon"]
+        tap(app, field)
+        field.typeText("300")
+        tap(app, app.buttons["time-save-volet1salon"])
+        XCTAssertTrue(app.staticTexts["Volet 1 Salon : entre 1 et 255 secondes"].waitForExistence(timeout: 5))
+        XCTAssertTrue(log(app, "uitest-injections").isEmpty)
+        tap(app, field)
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3) + "30")
+        tap(app, app.buttons["time-save-volet1salon"])
+        XCTAssertTrue(waitFor { !self.log(app, "uitest-injections").isEmpty })
+        XCTAssertEqual(log(app, "uitest-injections"), [#"{"k":566,"v":"30"}"#])
+        XCTAssertTrue(waitFor { current.label == "Actuel : 30 s" })
+        screenshot(app, "14-shutters-travel-time-light")
+    }
+
+    @MainActor func test_offline_disables_travel_time_save() {
+        let app = launch(["UITEST_ONLINE": "0"])
+        openHome(app)
+        XCTAssertTrue(app.staticTexts["Armoire hors ligne"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Volets"].tap()
+        let field = app.textFields["time-input-volet1salon"]
+        tap(app, field)
+        field.typeText("30")
+        XCTAssertFalse(app.buttons["time-save-volet1salon"].isEnabled)
+    }
+
     // MARK: Chauffe-eau, arrosage, alarme (specs comfort-controls, alarm-control)
 
     @MainActor func test_sprinkler_uses_firmware_index_363_and_water_heater_353() {
