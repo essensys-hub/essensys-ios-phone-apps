@@ -8,10 +8,16 @@ import SwiftUI
 struct EssensysRoot: View {
     @State private var session: SessionModel
     @State private var control: ControlModel
+    @State private var heating: HeatingModel
+    @State private var scenarios: ScenariosModel
+    @State private var comfort: ComfortModel
 
     init(container: AppContainer) {
         _session = State(initialValue: SessionModel(container: container))
         _control = State(initialValue: ControlModel(control: container.control))
+        _heating = State(initialValue: HeatingModel(heating: container.heating))
+        _scenarios = State(initialValue: ScenariosModel(scenarios: container.scenarios))
+        _comfort = State(initialValue: ComfortModel(comfort: container.comfort))
     }
 
     var body: some View {
@@ -27,7 +33,7 @@ struct EssensysRoot: View {
             Group {
                 switch session.link {
                 case nil: ScreenColumn { ProgressView("Chargement…") }
-                case .linked: MainTabs(session: session, control: control)
+                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort)
                 case let state?: LinkScreen(model: session, state: state)
                 }
             }
@@ -39,21 +45,44 @@ struct EssensysRoot: View {
 private struct MainTabs: View {
     let session: SessionModel
     let control: ControlModel
+    let heating: HeatingModel
+    let scenarios: ScenariosModel
+    let comfort: ComfortModel
     @State private var destination: Destination = .home
+    @State private var homePath: [Feature] = []
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.essensys) private var colors
 
     var body: some View {
         let enabled = session.session.mode == .lan || session.gatewayOnline == true
+        let lan = session.session.mode == .lan
         VStack(spacing: 0) {
             header
-            TabView(selection: $destination) {
-                HomeScreen { destination = $0 }.tag(Destination.home)
-                    .tabItem { Label(Destination.home.label, systemImage: Destination.home.icon) }
+            TabView(selection: Binding(get: { destination }, set: { destination = $0; homePath = [] })) {
+                NavigationStack(path: $homePath) {
+                    HomeScreen(scenarios: scenarios, enabled: enabled, openTab: { destination = $0 }, openFeature: { homePath.append($0) })
+                        .toolbar(.hidden, for: .navigationBar)
+                        .navigationDestination(for: Feature.self) { feature in
+                            Group {
+                                switch feature {
+                                case .scenarios: ScenariosScreen(model: scenarios, enabled: enabled)
+                                case .waterHeater: WaterHeaterScreen(model: comfort, enabled: enabled)
+                                case .sprinkler: SprinklerScreen(model: comfort, enabled: enabled)
+                                case .alarm: AlarmScreen(model: comfort, enabled: enabled, lanMode: lan)
+                                }
+                            }
+                            .navigationTitle(feature.title)
+                            .navigationBarTitleDisplayMode(.inline)
+                        }
+                }
+                .tag(Destination.home)
+                .tabItem { Label(Destination.home.label, systemImage: Destination.home.icon) }
                 LightingScreen(model: control, enabled: enabled).tag(Destination.lighting)
                     .tabItem { Label(Destination.lighting.label, systemImage: Destination.lighting.icon) }
                 ShuttersScreen(model: control, enabled: enabled).tag(Destination.shutters)
                     .tabItem { Label(Destination.shutters.label, systemImage: Destination.shutters.icon) }
+                HeatingScreen(model: heating, enabled: enabled, lanMode: lan).tag(Destination.heating)
+                    .tabItem { Label(Destination.heating.label, systemImage: Destination.heating.icon) }
                 SettingsScreen(model: session).tag(Destination.settings)
                     .tabItem { Label(Destination.settings.label, systemImage: Destination.settings.icon) }
             }

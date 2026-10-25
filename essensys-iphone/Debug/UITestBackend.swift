@@ -3,7 +3,8 @@
 //  Backend simulé embarqué pour les tests XCUITest (DEBUG uniquement) : aucune requête ne quitte le
 //  simulateur, aucune armoire réelle (spec ios-quality). Activé par la variable d'environnement
 //  UITEST_BACKEND=1 ; options : UITEST_LINKED, UITEST_ONLINE, UITEST_TEMP_PASSWORD, UITEST_TOKEN,
-//  UITEST_TEST_MODE, UITEST_THEME, UITEST_MODE, UITEST_INJECT_DELAY_MS.
+//  UITEST_TEST_MODE, UITEST_THEME, UITEST_MODE, UITEST_INJECT_DELAY_MS, UITEST_EXCHANGE (« k=v,k=v »),
+//  UITEST_FAIL_FIRST_INJECT.
 //
 
 #if DEBUG
@@ -21,7 +22,10 @@ enum UITestBackend {
         state.cloudHost = "https://\(host)"
         state.lanHost = "https://\(host)"
         state.mode = env["UITEST_MODE"] == "lan" ? .lan : .cloud
-        if env["UITEST_TOKEN"] == "1" { state.token = "jwt-uitest" }
+        if env["UITEST_TOKEN"] == "1" {
+            state.token = "jwt-uitest"
+            if state.mode == .lan { state.lanCookie = "uitest" }
+        }
         state.testMode = env["UITEST_TEST_MODE"] == "1"
         state.theme = env["UITEST_THEME"].flatMap(ThemePreference.init(rawValue:)) ?? .system
         return state
@@ -29,11 +33,25 @@ enum UITestBackend {
 
     private static let lock = NSLock()
     nonisolated(unsafe) private static var injections: [String] = []
+    nonisolated(unsafe) private static var mutations: [String] = []
+    nonisolated(unsafe) private static var failNextInject = env["UITEST_FAIL_FIRST_INJECT"] == "1"
+    nonisolated(unsafe) private static var exchange: [Int: String] = {
+        var values = [566: "25"]
+        for pair in (env["UITEST_EXCHANGE"] ?? "").split(separator: ",") {
+            let parts = pair.split(separator: "=")
+            if parts.count == 2, let k = Int(parts[0]) { values[k] = String(parts[1]) }
+        }
+        return values
+    }()
     nonisolated(unsafe) private static var temporaryPassword = env["UITEST_TEMP_PASSWORD"] == "1"
 
     static var injectionLog: [String] { lock.withLock { injections } }
+    /// Mutations hors inject (scénarios, alarme) : « METHOD chemin corps ».
+    static var mutationLog: [String] { lock.withLock { mutations } }
 
-    static func reply(method: String, path: String, headers: [String: String], body: String) -> (Int, String) {
+    private static let testOK = #"{"status":"test_ok","dry_run":true,"validated_params":[]}"#
+
+    static func reply(method: String, path: String, query: String? = nil, headers: [String: String], body: String) -> (Int, String) {
         let linked = env["UITEST_LINKED"] != "0"
         let online = env["UITEST_ONLINE"] != "0"
         switch path {
@@ -47,21 +65,66 @@ enum UITestBackend {
         case "/api/portal/link-request/status":
             return (200, linked ? #"{"status":"none","portal_access":true}"# : #"{"status":"none","portal_access":false}"#)
         case "/api/portal/session":
-            return (200, #"{"portal_access":true,"gateway":{"id":"gw-demo","online":\#(online)}}"#)
+            return (200, #"{"user":{"id":1,"email":"demo@essensys.fr","first_name":"Camille","last_name":"Démo"},"portal_access":true,"gateway":{"id":"gw-demo","online":\#(online)},"armoire":{"id":1,"no_serie":"SC944D-0001","last_seen":"2026-10-25T08:00:00Z"}}"#)
+        case "/api/user/me":
+            return (200, #"{"user":{"id":1}}"#)
         case "/api/portal/history/latest":
             return (200, #"{"lastAction":null,"message":"No actions yet"}"#)
-        case "/api/portal/inject":
-            lock.withLock { injections.append(body) }
-            if let delay = env["UITEST_INJECT_DELAY_MS"].flatMap(Double.init) { Thread.sleep(forTimeInterval: delay / 1000) }
-            if headers["X-Essensys-Test-Mode"] == "dry-run" {
-                return (200, #"{"status":"test_ok","dry_run":true,"validated_params":[]}"#)
+        case "/api/portal/inject", "/api/portal/inject/batch", "/api/admin/inject":
+            let fail = lock.withLock { () -> Bool in
+                injections.append(body)
+                defer { failNextInject = false }
+                return failNextInject
             }
-            return (200, #"{"guid":"g","params":[]}"#)
-        case "/api/portal/exchange":
-            return (200, #"{"values":[{"k":566,"v":"25"}],"stale":false,"source":"gateway_cache"}"#)
+            if fail { return (429, "Rate limit exceeded") }
+            if let delay = env["UITEST_INJECT_DELAY_MS"].flatMap(Double.init) { Thread.sleep(forTimeInterval: delay / 1000) }
+            if headers["X-Essensys-Test-Mode"] == "dry-run" { return (200, testOK) }
+            return (200, #"{"guid":"g","guids":["g"],"params":[]}"#)
+        case "/api/portal/exchange", "/api/admin/exchange":
+            return (200, exchangeReply(query))
+        case "/api/admin/heating/sync":
+            return (200, #"{"status":"started","sync":{"active":true,"received":0,"total":84}}"#)
+        case "/api/admin/heating/sync/status":
+            return (200, #"{"active":false,"received":84,"total":84,"chunksTotal":3,"chunksCompleted":3}"#)
+        case "/api/portal/web/actions":
+            lock.withLock { mutations.append("\(method) \(path) \(body)") }
+            return headers["X-Essensys-Test-Mode"] == "dry-run" ? (200, testOK) : (200, #"{"status":"ok","message":"Action sent to queue"}"#)
         default:
+            if path.range(of: "^/api/(portal/)?scenarios", options: .regularExpression) != nil {
+                return scenarios(method: method, path: path, headers: headers, body: body)
+            }
             return (404, "Not found")
         }
+    }
+
+    private static func exchangeReply(_ query: String?) -> String {
+        let keys = (query ?? "").replacingOccurrences(of: "keys=", with: "").split(separator: ",").compactMap { Int($0) }
+        let values = lock.withLock { exchange }
+        let items = keys.compactMap { k in values[k].map { #"{"k":\#(k),"v":"\#($0)"}"# } }.joined(separator: ",")
+        return #"{"values":[\#(items)],"stale":false,"source":"gateway_cache"}"#
+    }
+
+    private static func scenarios(method: String, path: String, headers: [String: String], body: String) -> (Int, String) {
+        let rest = path.replacingOccurrences(of: "^/api/(portal/)?scenarios/?", with: "", options: .regularExpression)
+        let labels = [2: "Je sors", 3: "Je pars en vacances", 4: "Je rentre", 5: "Je vais me coucher", 6: "Je me lève", 7: "Personnalisé 1", 8: "Personnalisé 2"]
+        if rest.isEmpty {
+            let slots = (1...8).map { slot -> String in
+                let base = 592 + (slot - 1) * 41
+                let last = slot == 2 ? #","last_launched":2"# : ""
+                return #"{"slot_number":\#(slot),"label":"\#(labels[slot] ?? "Serveur")","base_index":\#(base),"end_index":\#(base + 40),"editable":\#(slot >= 2)\#(last)}"#
+            }
+            return (200, #"{"slots":[\#(slots.joined(separator: ","))]}"#)
+        }
+        if rest == "meta/bitmasks" {
+            return (200, #"{"fields":[{"index":605,"name":"Eteindre_PDV_LSB","bits":[{"bit":0,"value":1,"label":"Entrée"},{"bit":1,"value":2,"label":"Salon 1"},{"bit":2,"value":4,"label":"Salon 2"}]},{"index":617,"name":"OuvrirVolets_PDV","bits":[{"bit":0,"value":1,"label":"Salon 1"},{"bit":5,"value":32,"label":"Bureau"}]}]}"#)
+        }
+        if method == "GET", let slot = Int(rest) {
+            let base = 592 + (slot - 1) * 41
+            let params = (base...(base + 40)).map { #"{"k":\#($0),"v":"0"}"# }.joined(separator: ",")
+            return (200, #"{"slot_number":\#(slot),"label":"\#(labels[slot] ?? "")","editable":true,"params":[\#(params)]}"#)
+        }
+        lock.withLock { mutations.append("\(method) \(path) \(body)") }
+        return headers["X-Essensys-Test-Mode"] == "dry-run" ? (200, testOK) : (200, #"{"status":"ok","guid":"g","guids":["g"]}"#)
     }
 }
 
@@ -78,7 +141,7 @@ final class UITestURLProtocol: URLProtocol, @unchecked Sendable {
             while stream.hasBytesAvailable { let n = stream.read(&buffer, maxLength: buffer.count); if n <= 0 { break }; body.append(buffer, count: n) }
         }
         let (status, text) = UITestBackend.reply(
-            method: request.httpMethod ?? "GET", path: url.path,
+            method: request.httpMethod ?? "GET", path: url.path, query: url.query,
             headers: request.allHTTPHeaderFields ?? [:], body: String(decoding: body, as: UTF8.self))
         let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1",
                                        headerFields: ["Content-Type": "application/json"])!
@@ -94,10 +157,16 @@ final class UITestURLProtocol: URLProtocol, @unchecked Sendable {
 struct UITestProbe: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.2)) { _ in
-            Text(UITestBackend.injectionLog.joined(separator: "|"))
-                .font(.system(size: 1)).opacity(0.01)
-                .accessibilityIdentifier("uitest-injections")
-                .accessibilityValue(UITestBackend.injectionLog.joined(separator: "|"))
+            VStack {
+                Text(UITestBackend.injectionLog.joined(separator: "|"))
+                    .font(.system(size: 1)).opacity(0.01)
+                    .accessibilityIdentifier("uitest-injections")
+                    .accessibilityValue(UITestBackend.injectionLog.joined(separator: "|"))
+                Text(UITestBackend.mutationLog.joined(separator: "|"))
+                    .font(.system(size: 1)).opacity(0.01)
+                    .accessibilityIdentifier("uitest-mutations")
+                    .accessibilityValue(UITestBackend.mutationLog.joined(separator: "|"))
+            }
         }
         .allowsHitTesting(false)
     }

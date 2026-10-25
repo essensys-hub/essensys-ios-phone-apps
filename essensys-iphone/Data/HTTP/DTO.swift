@@ -27,8 +27,53 @@ struct InjectResponse: Decodable {
     enum CodingKeys: String, CodingKey { case status, dryRun = "dry_run" }
 }
 
-struct KeyValue: Decodable { let k: Int; let v: String }
-struct ExchangeResponse: Decodable { let values: [KeyValue] }
+struct KeyValue: Codable, Equatable, Sendable { let k: Int; let v: String }
+
+struct ExchangeResponse: Decodable {
+    let values: [KeyValue]
+    let stale: Bool?
+    let source: String?
+}
+
+struct InjectBatchRequest: Encodable { let params: [KeyValue] }
+
+// Synchronisation du planning de chauffage, LAN seulement (essensys-server-backend handlers.go).
+struct HeatingSyncRequest: Encodable { let startIndex: Int; let byteCount: Int }
+
+struct HeatingSyncStatus: Decodable, Equatable, Sendable {
+    var active: Bool? = nil
+    var received: Int? = nil
+    var total: Int? = nil
+}
+
+struct HeatingSyncStarted: Decodable { let status: String?; let sync: HeatingSyncStatus? }
+
+// Scénarios : cloud /api/portal/scenarios*, LAN /api/scenarios* (même format, handlers/scenarios.go).
+struct ScenarioSlot: Decodable, Equatable, Identifiable, Sendable {
+    let slot: Int
+    let label: String
+    let editable: Bool
+    var lastLaunched: Int?
+    let params: [KeyValue]?
+    var id: Int { slot }
+    enum CodingKeys: String, CodingKey { case slot = "slot_number", label, editable, lastLaunched = "last_launched", params }
+}
+
+struct ScenarioList: Decodable { let slots: [ScenarioSlot] }
+
+struct BitmaskBit: Decodable, Equatable, Sendable { let bit: Int; let value: Int; let label: String }
+struct BitmaskField: Decodable, Equatable, Sendable { let index: Int; let name: String; let bits: [BitmaskBit] }
+struct BitmaskMeta: Decodable { let fields: [BitmaskField] }
+
+struct ScenarioSaveRequest: Encodable { let params: [String: String] }
+
+/// Alarme (cloud POST /api/portal/web/actions) : le code n'est jamais stocké ni journalisé par l'app.
+struct AlarmRequest: Encodable, CustomStringConvertible, CustomDebugStringConvertible {
+    let alarme: String
+    let codealarme: String
+    var description: String { "AlarmRequest(alarme: \(alarme), codealarme: ••••)" }
+    var debugDescription: String { description }
+}
 
 struct LinkRequestInfo: Decodable {
     let machineSerial: String?
@@ -49,8 +94,26 @@ struct LinkRequestBody: Encodable {
     enum CodingKeys: String, CodingKey { case machineSerial = "machine_serial", message }
 }
 
-struct GatewayInfo: Decodable { let online: Bool? }
-struct PortalSession: Decodable { let gateway: GatewayInfo? }
+struct GatewayInfo: Decodable, Equatable, Sendable { let online: Bool? }
+
+struct CloudUser: Decodable, Equatable, Sendable {
+    let email: String?
+    let firstName: String?
+    let lastName: String?
+    enum CodingKeys: String, CodingKey { case email, firstName = "first_name", lastName = "last_name" }
+}
+
+struct ArmoireInfo: Decodable, Equatable, Sendable {
+    let serial: String?
+    let lastSeen: String?
+    enum CodingKeys: String, CodingKey { case serial = "no_serie", lastSeen = "last_seen" }
+}
+
+struct PortalSession: Decodable, Equatable, Sendable {
+    let user: CloudUser?
+    let gateway: GatewayInfo?
+    let armoire: ArmoireInfo?
+}
 
 struct LastAction: Decodable, Equatable, Sendable {
     let actionInfo: String?

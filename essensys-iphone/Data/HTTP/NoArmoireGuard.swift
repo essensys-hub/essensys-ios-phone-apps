@@ -19,8 +19,9 @@ struct NoArmoireGuard: Sendable {
 
     static func isArmoireMutation(method: String, path: String) -> Bool {
         guard mutatingMethods.contains(method.uppercased()) else { return false }
-        if mutations.contains(where: { path.contains($0) }) { return true }
-        return path.range(of: "/scenarios/[^/]+/launch", options: .regularExpression) != nil
+        if mutations.contains(where: { path.contains($0) }) { return true } // inject et inject/batch compris
+        return ["/scenarios/[^/]+/(launch|restore)", "/scenarios/[0-9]+/?$", "/api/admin/heating/sync$"]
+            .contains { path.range(of: $0, options: .regularExpression) != nil }
     }
 
     func shouldBlock(_ request: URLRequest) -> Bool {

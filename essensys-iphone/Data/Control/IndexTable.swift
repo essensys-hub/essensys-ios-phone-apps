@@ -93,3 +93,175 @@ enum IndexTable {
         Shutter(id: "store", name: "Store (banne)", group: .special, mask: 8, openIndex: 619, closeIndex: 622, travelTimeIndex: 585),
     ]
 }
+
+// MARK: - Chauffage (spec heating-control) : essensys-user-portal-frontend/src/heating/constants.ts
+
+extension IndexTable {
+    /// Valeur d'un créneau horaire du planning (3 bits). Hors gel (5) peut être lu dans l'armoire mais
+    /// n'est pas proposé à l'édition, comme dans le portail : la grille garde la valeur brute pour ne
+    /// jamais réécrire un créneau que l'utilisateur n'a pas touché.
+    enum HeatingSlot: Int, CaseIterable, Sendable {
+        case off = 0, confort = 1, eco = 2, ecoPlus = 3, ecoPlusPlus = 4, frost = 5
+
+        var label: String {
+            switch self {
+            case .off: "OFF"
+            case .confort: "Confort"
+            case .eco: "Éco"
+            case .ecoPlus: "Éco+"
+            case .ecoPlusPlus: "Éco++"
+            case .frost: "Hors gel"
+            }
+        }
+
+        var inPalette: Bool { self != .frost }
+        static let palette = allCases.filter(\.inPalette)
+    }
+
+    /// 7 jours × 12 octets (2 heures par octet).
+    static let scheduleBytes = 84
+    static let scheduleBytesPerDay = 12
+
+    /// Mode immédiat (`Chauf_*_Mode`) : b0–b3 consigne, b4–b5 automatique / forcé / anticipé.
+    enum ImmediateMode: Int, CaseIterable, Sendable {
+        case auto = 1, anticipated = 32, forceConfort = 17, forceEco = 18, forceEcoPlus = 19,
+             forceEcoPlusPlus = 20, frost = 21, off = 16
+
+        var label: String {
+            switch self {
+            case .auto: "Automatique (planning)"
+            case .anticipated: "Anticipé"
+            case .forceConfort: "Forçage confort"
+            case .forceEco: "Forçage éco"
+            case .forceEcoPlus: "Forçage éco+"
+            case .forceEcoPlusPlus: "Forçage éco++"
+            case .frost: "Forçage hors gel"
+            case .off: "OFF"
+            }
+        }
+
+        /// Nom stable, identique à l'enum Kotlin (identifiants d'accessibilité et tests).
+        var name: String {
+            switch self {
+            case .auto: "AUTO"
+            case .anticipated: "ANTICIPATED"
+            case .forceConfort: "FORCE_CONFORT"
+            case .forceEco: "FORCE_ECO"
+            case .forceEcoPlus: "FORCE_ECO_PLUS"
+            case .forceEcoPlusPlus: "FORCE_ECO_PLUS_PLUS"
+            case .frost: "FROST"
+            case .off: "OFF"
+            }
+        }
+    }
+
+    struct HeatingZone: Identifiable, Equatable, Sendable {
+        let id: String
+        let name: String
+        let scheduleStart: Int
+        let modeIndex: Int
+        let allowsAnticipated: Bool
+
+        var scheduleIndices: Range<Int> { scheduleStart..<(scheduleStart + IndexTable.scheduleBytes) }
+        var immediateModes: [ImmediateMode] { ImmediateMode.allCases.filter { allowsAnticipated || $0 != .anticipated } }
+
+        /// nil si le mode n'est pas proposé pour la zone (Anticipé en salle de bain).
+        func command(_ mode: ImmediateMode) -> Injection? {
+            immediateModes.contains(mode) ? Injection(k: modeIndex, v: String(mode.rawValue)) : nil
+        }
+    }
+
+    static let heatingZones: [HeatingZone] = [
+        HeatingZone(id: "jour", name: "Zone Jour", scheduleStart: 13, modeIndex: 349, allowsAnticipated: true),
+        HeatingZone(id: "nuit", name: "Zone Nuit", scheduleStart: 97, modeIndex: 350, allowsAnticipated: true),
+        HeatingZone(id: "sdb1", name: "Salle de bain 1", scheduleStart: 181, modeIndex: 351, allowsAnticipated: false),
+        HeatingZone(id: "sdb2", name: "Salle de bain 2", scheduleStart: 265, modeIndex: 352, allowsAnticipated: false),
+    ]
+}
+
+// MARK: - Chauffe-eau et arrosage (spec comfort-controls) : indices du firmware TableEchange.h
+// Le portail envoie 400–402 et 500–504 (absents du firmware) : NE PAS les reprendre (design D3).
+
+extension IndexTable {
+    static let waterHeaterIndex = 353 // Cumulus_Mode
+    static let sprinklerIndex = 363 // Arrose_Mode
+
+    enum WaterHeaterMode: Int, CaseIterable, Sendable {
+        case autonomous = 0, offPeak = 1, off = 2
+
+        var label: String {
+            switch self {
+            case .autonomous: "Autonome (marche permanente)"
+            case .offPeak: "Heures creuses"
+            case .off: "Arrêt"
+            }
+        }
+
+        var name: String {
+            switch self {
+            case .autonomous: "AUTONOMOUS"
+            case .offPeak: "OFF_PEAK"
+            case .off: "OFF"
+            }
+        }
+
+        var command: Injection { Injection(k: IndexTable.waterHeaterIndex, v: String(rawValue)) }
+    }
+
+    enum SprinklerMode: Int, CaseIterable, Sendable {
+        case auto = 255, minutes15 = 15, minutes30 = 30, minutes60 = 60, off = 0
+
+        var label: String {
+            switch self {
+            case .auto: "Automatique"
+            case .minutes15: "15 minutes"
+            case .minutes30: "30 minutes"
+            case .minutes60: "60 minutes"
+            case .off: "Arrêt"
+            }
+        }
+
+        var name: String {
+            switch self {
+            case .auto: "AUTO"
+            case .minutes15: "MINUTES_15"
+            case .minutes30: "MINUTES_30"
+            case .minutes60: "MINUTES_60"
+            case .off: "OFF"
+            }
+        }
+
+        var command: Injection { Injection(k: IndexTable.sprinklerIndex, v: String(rawValue)) }
+    }
+}
+
+// MARK: - Scénarios (spec scenarios) : essensys-user-portal-backend/internal/domain/scenario/indices.go
+
+extension IndexTable {
+    static let scenarioFirstBase = 592
+    static let scenarioSize = 41
+    static let scenarioSlots = 2...8
+    static let restorableScenarioSlots = 2...6
+
+    static func scenarioBlock(_ slot: Int) -> ClosedRange<Int> {
+        let base = scenarioFirstBase + (slot - 1) * scenarioSize
+        return base...(base + scenarioSize - 1)
+    }
+
+    /// Les métadonnées `meta/bitmasks` décrivent les indices du scénario 1 (605, 606…) : on les
+    /// transpose dans le bloc du scénario édité (design D6). nil si l'indice n'appartient pas au bloc 1.
+    static func shiftIntoScenario(_ metaIndex: Int, slot: Int) -> Int? {
+        let block = scenarioBlock(slot)
+        if block.contains(metaIndex) { return metaIndex }
+        let offset = metaIndex - scenarioFirstBase
+        guard (0..<scenarioSize).contains(offset) else { return nil }
+        return block.lowerBound + offset
+    }
+
+    /// Limite firmware : 30 paramètres au plus par action (heating/injectLimits.ts).
+    static let maxParamsPerAction = 30
+
+    static func chunk<T>(_ params: [T], size: Int = maxParamsPerAction) -> [[T]] {
+        stride(from: 0, to: params.count, by: size).map { Array(params[$0..<min($0 + size, params.count)]) }
+    }
+}

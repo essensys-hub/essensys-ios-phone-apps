@@ -41,7 +41,12 @@ final class PortalRepository: Sendable {
     }
 
     func gatewayOnline() async -> Result<Bool, APIError> {
-        await get("/api/portal/session", as: PortalSession.self) { $0.gateway?.online == true }
+        await session().map { $0.gateway?.online == true }
+    }
+
+    /// Session cloud : compte, gateway (en ligne si vue depuis moins de 2 min) et armoire liée.
+    func session() async -> Result<PortalSession, APIError> {
+        await get("/api/portal/session", as: PortalSession.self) { $0 }
     }
 
     func lastAction() async -> Result<LastAction?, APIError> {

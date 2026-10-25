@@ -27,6 +27,24 @@ struct NoArmoireGuardTests {
         #expect(!NoArmoireGuard().shouldBlock(request("https://mon.essensys.fr/api/portal/inject", dryRun: true)))
     }
 
+    @Test func no_armoire_guard_blocks_new_mutation_routes() {
+        let routes = [
+            ("POST", "https://mon.essensys.fr/api/portal/inject/batch"),
+            ("POST", "https://mon.essensys.fr/api/portal/web/actions"),
+            ("POST", "https://mon.essensys.fr/api/portal/scenarios/2/launch"),
+            ("POST", "https://mon.essensys.fr/api/portal/scenarios/3/restore"),
+            ("PUT", "https://mon.essensys.fr/api/portal/scenarios/7"),
+            ("POST", "https://mon.essensys.local/api/scenarios/2/launch"),
+            ("PUT", "https://mon.essensys.local/api/scenarios/8"),
+            ("POST", "https://mon.essensys.local/api/admin/heating/sync"),
+        ]
+        for (method, url) in routes { #expect(NoArmoireGuard().shouldBlock(request(url, method)), "\(method) \(url)") }
+        // Lectures et réglage admin non bloqués.
+        #expect(!NoArmoireGuard.isArmoireMutation(method: "GET", path: "/api/admin/heating/sync/status"))
+        #expect(!NoArmoireGuard.isArmoireMutation(method: "PUT", path: "/api/admin/scenarios/sync"))
+        #expect(!NoArmoireGuard.isArmoireMutation(method: "GET", path: "/api/portal/scenarios/4"))
+    }
+
     @Test func reads_and_non_armoire_paths_are_not_mutations() {
         #expect(!NoArmoireGuard.isArmoireMutation(method: "GET", path: "/api/portal/inject"))
         #expect(!NoArmoireGuard.isArmoireMutation(method: "POST", path: "/api/auth/login"))

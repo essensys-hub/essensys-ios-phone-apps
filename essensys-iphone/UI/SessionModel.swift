@@ -26,6 +26,8 @@ final class SessionModel {
     var pendingCertificate: PendingCertificate?
     private(set) var link: LinkState?
     private(set) var gatewayOnline: Bool?
+    /// Compte et armoire (cloud), affichés dans les Réglages (spec home-dashboard « Compte et armoire »).
+    private(set) var account: PortalSession?
     private(set) var lastAction: LastAction?
 
     private let container: AppContainer
@@ -156,7 +158,10 @@ final class SessionModel {
 
     private func pollGateway() async {
         while !Task.isCancelled {
-            if case let .success(online) = await container.portal.gatewayOnline() { gatewayOnline = online }
+            if case let .success(portal) = await container.portal.session() {
+                account = portal
+                gatewayOnline = portal.gateway?.online == true
+            }
             session = store.state
             try? await Task.sleep(for: sessionPeriod)
         }
