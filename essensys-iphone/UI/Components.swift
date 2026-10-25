@@ -119,6 +119,9 @@ struct ScreenColumn<Content: View>: View {
                 .padding(16)
                 .frame(maxWidth: .infinity)
         }
+        // Le pavé numérique (temps de course, code d'alarme) n'a pas de touche de fermeture :
+        // faire défiler l'écran le ferme.
+        .scrollDismissesKeyboard(.interactively)
         .background(colors.background)
     }
 }

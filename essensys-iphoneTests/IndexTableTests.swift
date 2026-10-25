@@ -115,6 +115,24 @@ struct IndexTableTests {
         #expect(!sent.contains { (400...402).contains($0) || (500...504).contains($0) })
     }
 
+    // NR: NR-ios-17 essensys-hub/essensys-ios-phone-apps#18
+    @Test func travel_time_command_uses_shutter_index_and_range_NR_ios_17() {
+        let salon1 = IndexTable.shutters.first { $0.id == "volet1salon" }!
+        #expect(salon1.travelTimeCommand(seconds: 30) == Injection(k: 566, v: "30"))
+        #expect(IndexTable.shutters.first { $0.id == "store" }!.travelTimeCommand(seconds: 255) == Injection(k: 585, v: "255"))
+        #expect(salon1.travelTimeCommand(seconds: 1) == Injection(k: 566, v: "1"))
+        #expect(salon1.travelTimeCommand(seconds: 0) == nil)
+        #expect(salon1.travelTimeCommand(seconds: 256) == nil)
+        // Mêmes indices que le portail (ShuttersPage.tsx, timeIndex) et qu'IndexTableTest.kt.
+        let golden = [
+            "volet1salon": 566, "volet2salon": 567, "volet3salon": 568, "volet1salleamanger": 569,
+            "volet2salleamanger": 570, "voletbureau": 571, "voletstore": 572, "volet1gdchamb": 574,
+            "volet2gdchamb": 575, "volet1ptchamb": 576, "volet2ptchamb": 577, "volet3ptchamb": 578,
+            "volet1cuisine": 582, "volet2cuisine": 583, "voletsdb": 584, "store": 585,
+        ]
+        #expect(Dictionary(uniqueKeysWithValues: IndexTable.shutters.map { ($0.id, $0.travelTimeCommand(seconds: 30)!.k) }) == golden)
+    }
+
     @Test func scenario_blocks_follow_backend_layout() {
         #expect(IndexTable.scenarioBlock(1) == 592...632)
         #expect(IndexTable.scenarioBlock(4) == 715...755)

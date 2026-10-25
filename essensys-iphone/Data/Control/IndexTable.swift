@@ -36,7 +36,15 @@ enum IndexTable {
         let closeIndex: Int
         let travelTimeIndex: Int
         func command(open: Bool) -> Injection { Injection(k: open ? openIndex : closeIndex, v: String(mask)) }
+
+        /// Temps de course (spec shutter-travel-time) ; nil hors de travelTimeRange.
+        func travelTimeCommand(seconds: Int) -> Injection? {
+            IndexTable.travelTimeRange.contains(seconds) ? Injection(k: travelTimeIndex, v: String(seconds)) : nil
+        }
     }
+
+    /// Temps de course : indices 566–589, valeur 1–255 secondes.
+    static let travelTimeRange = 1...255
 
     static let lights: [Light] = [
         Light(id: "terrasse", name: "Terrasse", group: .main, mask: 4, onIndex: 616, offIndex: 610),
