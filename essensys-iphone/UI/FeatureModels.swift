@@ -220,6 +220,11 @@ final class ScenariosModel {
         editor?.definition = def.toggled(metaIndex: metaIndex, bitValue: bitValue, on: on)
     }
 
+    func setSecurity(_ choice: IndexTable.ScenarioSecurity) {
+        guard let def = editor?.definition else { return }
+        editor?.definition = def.withSecurity(choice)
+    }
+
     func closeEditor() { editor = nil }
 
     func saveEditor() {
@@ -243,7 +248,7 @@ final class ScenariosModel {
     }
 }
 
-// MARK: - Chauffe-eau, arrosage, alarme (specs comfort-controls, alarm-control)
+// MARK: - Chauffe-eau, arrosage, prises de sécurité, alarme (specs comfort-controls, security-outlets, alarm-control)
 
 /// Le code d'alarme ne transite que par alarm(on:code:) : il n'est jamais gardé dans ce modèle.
 @MainActor @Observable
@@ -251,6 +256,14 @@ final class ComfortModel {
     private(set) var modes: ComfortModes?
     private(set) var inFlight: Set<String> = []
     private(set) var feedback: Feedback?
+    private(set) var outlets: IndexTable.SecurityOutletsState = .unknown
+    /// Commande des prises envoyée : état relu jusqu'à recevoir la nouvelle valeur.
+    private(set) var outletsWaiting = false
+    private(set) var outletsSending: IndexTable.SecurityOutletsAction?
+    private var outletsRecheck: Task<Void, Never>?
+
+    /// Relectures de l'état 440 : 5, 10 puis 20 s après l'envoi (l'armoire exécute en ~5 s).
+    private static let outletsRecheckPauses: [Duration] = [.seconds(5), .seconds(5), .seconds(10)]
 
     private let comfort: ComfortRepository
     init(comfort: ComfortRepository) { self.comfort = comfort }
@@ -265,6 +278,41 @@ final class ComfortModel {
 
     func setSprinkler(_ mode: IndexTable.SprinklerMode) {
         run("sprinkler-\(mode.name)", "Arrosage \(mode.label.lowercased())") { [comfort] in await comfort.setSprinkler(mode) }
+    }
+
+    func loadSecurityOutlets() async { await refreshOutlets() }
+
+    /// Une seule commande des prises en vol à la fois ; après un envoi réel, l'état est relu.
+    func securityOutlets(_ action: IndexTable.SecurityOutletsAction) {
+        guard outletsSending == nil else { return }
+        outletsSending = action
+        feedback = nil
+        Task {
+            let result = await comfort.securityOutlets(action)
+            feedback = commandFeedback(action.label, result)
+            outletsSending = nil
+            if case .success(.sent) = result { waitForOutlets(action.expectedState) }
+        }
+    }
+
+    private func waitForOutlets(_ expected: IndexTable.SecurityOutletsState) {
+        outletsRecheck?.cancel()
+        outletsWaiting = true
+        outletsRecheck = Task {
+            for pause in Self.outletsRecheckPauses {
+                try? await Task.sleep(for: pause)
+                if Task.isCancelled { return }
+                if await refreshOutlets() == expected { break }
+            }
+            outletsWaiting = false
+        }
+    }
+
+    @discardableResult
+    private func refreshOutlets() async -> IndexTable.SecurityOutletsState? {
+        guard case let .success(value) = await comfort.readSecurityOutlets() else { return nil }
+        outlets = value
+        return value
     }
 
     func alarm(on: Bool, code: String) {

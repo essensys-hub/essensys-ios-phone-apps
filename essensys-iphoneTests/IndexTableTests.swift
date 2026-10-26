@@ -133,6 +133,27 @@ struct IndexTableTests {
         #expect(Dictionary(uniqueKeysWithValues: IndexTable.shutters.map { ($0.id, $0.travelTimeCommand(seconds: 30)!.k) }) == golden)
     }
 
+    // NR: NR-ios-18 essensys-hub/essensys-ios-phone-apps#20
+    @Test func security_outlets_commands_and_scenario_offset_NR_ios_18() {
+        // Même lot que les portails (securityOutlets.ts) et qu'IndexTableTest.kt (NR-android-18).
+        #expect(IndexTable.SecurityOutletsAction.cut.commands == [Injection(k: 590, v: "1"), Injection(k: 623, v: "1")])
+        #expect(IndexTable.SecurityOutletsAction.restore.commands == [Injection(k: 590, v: "1"), Injection(k: 623, v: "2")])
+        #expect(IndexTable.scenarioSecurityIndex(1) == IndexTable.securityOutletsCommandIndex)
+        #expect(IndexTable.scenarioSecurityIndex(2) == 664) // « Je sors » : 633 + 31
+        #expect(IndexTable.scenarioSecurityIndex(4) == 746)
+        #expect(IndexTable.ScenarioSecurity.allCases.map(\.rawValue) == [0, 1, 2])
+        #expect(IndexTable.SecurityOutletsState(raw: "1") == .cut)
+        #expect(IndexTable.SecurityOutletsState(raw: " 0 ") == .piloted)
+        #expect(IndexTable.SecurityOutletsState(raw: nil) == .unknown)
+        #expect(IndexTable.SecurityOutletsState(raw: "25") == .unknown)
+        // L'éditeur écrit le choix au décalage 31 du bloc du scénario édité.
+        let block = IndexTable.scenarioBlock(2)
+        let jeSors = ScenarioDefinition(slot: 2, values: Dictionary(uniqueKeysWithValues: block.map { ($0, 0) })).withSecurity(.cut)
+        #expect(jeSors.values[664] == 1)
+        #expect(jeSors.security == .cut)
+        #expect(ScenarioDefinition(slot: 2, values: [:]).security == .nothing)
+    }
+
     @Test func scenario_blocks_follow_backend_layout() {
         #expect(IndexTable.scenarioBlock(1) == 592...632)
         #expect(IndexTable.scenarioBlock(4) == 715...755)

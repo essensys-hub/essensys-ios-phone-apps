@@ -16,6 +16,7 @@ L'application iPhone officielle pour piloter une installation domotique Essensys
 - **Scénarios** : lancement des scénarios 2 à 8, retour aux réglages d'usine (2 à 6) et choix des lumières et volets commandés.
 - **Chauffe-eau** : marche permanente, heures creuses ou arrêt.
 - **Arrosage** : automatique, 15, 30 ou 60 minutes, ou arrêt.
+- **Prises de sécurité** : état (coupées, pilotées ou inconnu), « Couper » avec confirmation et « Rétablir », en cloud comme en réseau local. Un scénario peut aussi couper ou rétablir les prises (éditeur de scénarios).
 - **Alarme** (cloud seulement) : mise en service et arrêt avec le code à 4 chiffres, jamais conservé par l'application. Masquée dans les builds Release (TestFlight) tant que la commande n'a pas été validée sur une armoire de test.
 - **État de l'armoire** (en ligne ou hors ligne) et **dernière action** en cloud. Les commandes sont désactivées quand l'armoire est hors ligne ; les plannings restent consultables.
 - **Mode test** : le serveur valide les commandes sans que l'armoire les exécute.

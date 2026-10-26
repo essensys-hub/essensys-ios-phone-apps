@@ -243,6 +243,83 @@ extension IndexTable {
     }
 }
 
+// MARK: - Prises de sécurité (spec security-outlets) : indices du firmware TableEchange.h
+// Commande : Scenario_Securite du scénario 1 (592 + 31), déclenché par 590 = 1. Verrouillé par NR-ios-18.
+
+extension IndexTable {
+    static let securityOutletsCommandIndex = 623 // Scenario_Securite, scénario 1
+    static let securityOutletsStateIndex = 440 // Securite_PriseCoupe : 1 = coupées, 0 = pilotées
+    static let scenarioSecurityOffset = 31
+
+    enum SecurityOutletsAction: Int, CaseIterable, Sendable {
+        case cut = 1, restore = 2
+
+        var label: String {
+            switch self {
+            case .cut: "Coupure des prises de sécurité"
+            case .restore: "Rétablissement des prises de sécurité"
+            }
+        }
+
+        var name: String {
+            switch self {
+            case .cut: "CUT"
+            case .restore: "RESTORE"
+            }
+        }
+
+        /// Un seul lot : déclenchement du scénario 1 et commande.
+        var commands: [Injection] {
+            [Injection(k: 590, v: "1"), Injection(k: IndexTable.securityOutletsCommandIndex, v: String(rawValue))]
+        }
+
+        var expectedState: SecurityOutletsState { self == .cut ? .cut : .piloted }
+    }
+
+    enum SecurityOutletsState: Sendable {
+        case cut, piloted, unknown
+
+        init(raw: String?) {
+            switch raw?.trimmingCharacters(in: .whitespaces) {
+            case "1": self = .cut
+            case "0": self = .piloted
+            default: self = .unknown
+            }
+        }
+
+        var label: String {
+            switch self {
+            case .cut: "Prises coupées"
+            case .piloted: "Prises pilotées"
+            case .unknown: "État inconnu"
+            }
+        }
+    }
+
+    /// Choix « Prises de sécurité » d'un scénario (valeur de Scenario_Securite).
+    enum ScenarioSecurity: Int, CaseIterable, Sendable {
+        case nothing = 0, cut = 1, restore = 2
+
+        var label: String {
+            switch self {
+            case .nothing: "Ne rien faire"
+            case .cut: "Couper"
+            case .restore: "Rétablir"
+            }
+        }
+
+        var name: String {
+            switch self {
+            case .nothing: "NOTHING"
+            case .cut: "CUT"
+            case .restore: "RESTORE"
+            }
+        }
+    }
+
+    static func scenarioSecurityIndex(_ slot: Int) -> Int { scenarioBlock(slot).lowerBound + scenarioSecurityOffset }
+}
+
 // MARK: - Scénarios (spec scenarios) : essensys-user-portal-backend/internal/domain/scenario/indices.go
 
 extension IndexTable {

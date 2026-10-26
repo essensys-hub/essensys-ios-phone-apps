@@ -51,7 +51,7 @@
     "junit": [
       "essensys-iphoneTests/IndexTableTests.swift",
       "essensys-iphoneTests/ComfortRepositoryTests.swift",
-      "essensys-iphoneUITests/ParityUITests.swift",
+      "essensys-iphoneUITests/SecurityOutletsUITests.swift",
       "essensys-iphone/Debug/UITestBackend.swift"
     ],
     "coverage_must_test": [

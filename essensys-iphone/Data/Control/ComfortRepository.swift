@@ -1,6 +1,7 @@
 //
 //  ComfortRepository.swift
-//  Chauffe-eau, arrosage (spec comfort-controls) et alarme (spec alarm-control), jumeau de ComfortRepository.kt.
+//  Chauffe-eau, arrosage (spec comfort-controls), prises de sécurité (spec security-outlets) et alarme
+//  (spec alarm-control), jumeau de ComfortRepository.kt.
 //
 
 import Foundation
@@ -51,6 +52,18 @@ final class ComfortRepository: Sendable {
 
     func setSprinkler(_ mode: IndexTable.SprinklerMode) async -> Result<InjectOutcome, APIError> {
         await control.inject(mode.command)
+    }
+
+    /// Prises de sécurité (spec security-outlets) : état lu à l'indice 440, inconnu s'il est absent.
+    func readSecurityOutlets() async -> Result<IndexTable.SecurityOutletsState, APIError> {
+        await control.readExchange(keys: [IndexTable.securityOutletsStateIndex]).map {
+            IndexTable.SecurityOutletsState(raw: $0[IndexTable.securityOutletsStateIndex])
+        }
+    }
+
+    /// Coupure ou rétablissement : un lot [590 = 1, 623 = 1|2], en cloud comme en LAN.
+    func securityOutlets(_ action: IndexTable.SecurityOutletsAction) async -> Result<InjectOutcome, APIError> {
+        await control.injectBatch(action.commands)
     }
 
     /// Mise en service ou arrêt de l'alarme, en cloud seulement. Le code n'est ni conservé ni renvoyé :
