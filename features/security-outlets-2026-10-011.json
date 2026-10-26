@@ -1,0 +1,95 @@
+{
+  "$schema": "./schema/feature.schema.json",
+  "id": "security-outlets-2026-10-011",
+  "title": "Piloter les prises de sécurité depuis les apps et le portail (cloud et local)",
+  "status": "proposed",
+  "owner": "rhinosys",
+  "github": {
+    "issue": "essensys-hub/essensys-feature-lifecycle#36",
+    "project_item": "PVTI_lADODqt0Wc4BavHTzhDc1KI"
+  },
+  "git": {
+    "branch": "feat/security-outlets-2026-10-011",
+    "pr_url": null
+  },
+  "openspec": {
+    "change_id": "security-outlets-2026-10-011",
+    "path": "openspec/changes/security-outlets-2026-10-011",
+    "proposal": "openspec/changes/security-outlets-2026-10-011/proposal.md",
+    "design": "openspec/changes/security-outlets-2026-10-011/design.md",
+    "tasks": "openspec/changes/security-outlets-2026-10-011/tasks.md",
+    "specs": [
+      "openspec/changes/security-outlets-2026-10-011/specs/security-outlets-quality/spec.md",
+      "openspec/changes/security-outlets-2026-10-011/specs/security-outlets/spec.md"
+    ]
+  },
+  "implementation": {
+    "paths": [
+      "essensys-iphone/Data/Control/IndexTable.swift",
+      "essensys-iphone/Data/Control/ComfortRepository.swift",
+      "essensys-iphone/Data/Control/ScenarioRepository.swift",
+      "essensys-iphone/UI/EssensysRoot.swift",
+      "essensys-iphone/UI/Screens/MainScreens.swift",
+      "essensys-iphone/UI/Screens/FeatureScreens.swift",
+      "essensys-iphone/UI/FeatureModels.swift"
+    ],
+    "primary_surface": "ios"
+  },
+  "userguide": {
+    "pages": [
+      "README.md"
+    ],
+    "language": "fr",
+    "i18n_keys": [],
+    "screenshots": [
+      "img/v2/02-home-light.png",
+      "img/v2/09-heating-light.png"
+    ]
+  },
+  "tests": {
+    "playwright": [],
+    "junit": [
+      "essensys-iphoneTests/IndexTableTests.swift",
+      "essensys-iphoneTests/ComfortRepositoryTests.swift",
+      "essensys-iphoneUITests/SecurityOutletsUITests.swift",
+      "essensys-iphone/Debug/UITestBackend.swift"
+    ],
+    "coverage_must_test": [
+      "couper envoie 590 et 623 a 1",
+      "retablir envoie 623 a 2",
+      "annuler la confirmation n envoie rien",
+      "commandes desactivees hors ligne",
+      "etat inconnu sans indice 440"
+    ],
+    "smoke_tags": [
+      "@nr"
+    ]
+  },
+  "release": {
+    "changelog_entry": "iPhone 2.2.0 : couper et rétablir les prises de sécurité, état des prises, choix dans les scénarios (#36).",
+    "target_tag": "ios-v2.2.0",
+    "surfaces": [
+      "ios"
+    ],
+    "paths": []
+  },
+  "security": {
+    "sca_tool": "dependabot+trivy",
+    "dependabot_alerts_url": "https://github.com/essensys-hub/essensys-ios-phone-apps/security/dependabot",
+    "last_scan_at": null,
+    "cve_findings": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "secret_scan": {
+      "status": "warning",
+      "tool": "gitleaks",
+      "last_scan_at": null
+    },
+    "muted_findings": [],
+    "threat_model_url": null,
+    "owner_security": "rhinosys"
+  }
+}

@@ -68,6 +68,18 @@ struct ScenariosScreen: View {
                             .accessibilityIdentifier("bit-\(field.index)-\(bit.value)")
                     }
                 }
+                // Prises de sécurité : Scenario_Securite, décalage 31 du bloc (spec security-outlets).
+                Text("Prises de sécurité").font(.subheadline.weight(.semibold)).foregroundStyle(colors.text)
+                Picker("Prises de sécurité", selection: Binding(
+                    get: { editor.definition?.security ?? .nothing },
+                    set: { model.setSecurity($0) })) {
+                    ForEach(IndexTable.ScenarioSecurity.allCases, id: \.self) { choice in
+                        Text(choice.label).tag(choice).accessibilityIdentifier("scenario-security-\(choice.name)")
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(editor.saving)
+                .accessibilityIdentifier("scenario-security")
             }
             HStack(spacing: 8) {
                 ActionButton(label: "Fermer", tone: .secondary) { model.closeEditor() }.accessibilityIdentifier("editor-close")
@@ -134,6 +146,56 @@ struct SprinklerScreen: View {
             }
         }
         .task { await model.loadModes() }
+    }
+}
+
+/// Prises de sécurité (spec security-outlets) : état à l'indice 440, commande au 623 du scénario 1.
+/// « Couper » passe par une confirmation ; « Annuler » n'envoie rien.
+struct SecurityOutletsScreen: View {
+    let model: ComfortModel
+    let enabled: Bool
+    @State private var confirmCut = false
+    @Environment(\.essensys) private var colors
+
+    private var pill: (String, Color) {
+        if model.outletsWaiting { return ("En attente de l'armoire", colors.warning) }
+        switch model.outlets {
+        case .cut: return (model.outlets.label, colors.danger)
+        case .piloted: return (model.outlets.label, colors.success)
+        case .unknown: return (model.outlets.label, colors.textMuted)
+        }
+    }
+
+    var body: some View {
+        ScreenColumn {
+            FeedbackBanner(feedback: model.feedback)
+            EssensysCard(title: "Prises de sécurité", description: "Coupez à distance les prises de sécurité (fer à repasser, plaques…), puis rétablissez-les") {
+                StatusPill(text: pill.0, color: pill.1)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("outlets-state")
+                if !enabled {
+                    Text("Armoire hors ligne : commandes indisponibles.")
+                        .foregroundStyle(colors.textMuted).accessibilityIdentifier("outlets-offline")
+                }
+                HStack(spacing: 8) {
+                    ActionButton(label: "Couper", tone: .danger, loading: model.outletsSending == .cut,
+                                 enabled: enabled && model.outletsSending == nil) { confirmCut = true }
+                        .accessibilityIdentifier("outlets-cut")
+                    ActionButton(label: "Rétablir", loading: model.outletsSending == .restore,
+                                 enabled: enabled && model.outletsSending == nil) { model.securityOutlets(.restore) }
+                        .accessibilityIdentifier("outlets-restore")
+                }
+                Text("Un scénario (par exemple « Je sors ») peut aussi couper ou rétablir les prises : réglez-le dans Scénarios.")
+                    .font(.caption).foregroundStyle(colors.textMuted)
+            }
+        }
+        .task { await model.loadSecurityOutlets() }
+        .alert("Couper les prises de sécurité", isPresented: $confirmCut) {
+            Button("Couper", role: .destructive) { model.securityOutlets(.cut) }.accessibilityIdentifier("outlets-cut-confirm")
+            Button("Annuler", role: .cancel) {}.accessibilityIdentifier("outlets-cut-cancel")
+        } message: {
+            Text("Les appareils branchés sur les prises de sécurité ne seront plus alimentés. Confirmez-vous la coupure ?")
+        }
     }
 }
 

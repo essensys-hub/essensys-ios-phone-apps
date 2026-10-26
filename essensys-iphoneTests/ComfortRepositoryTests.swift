@@ -24,6 +24,34 @@ struct ComfortRepositoryTests {
         #expect(t.requests.map(\.body) == [#"{"k":353,"v":"1"}"#, #"{"k":363,"v":"30"}"#])
     }
 
+    @Test func security_outlets_cut_is_one_batch_in_cloud() async {
+        let t = TestBackend(token: "jwt")
+        t.enqueue(200, TestBackend.fixture("inject_ok"))
+        #expect(await t.container.comfort.securityOutlets(.cut) == .success(.sent))
+        #expect(t.requests.first?.path == "/api/portal/inject/batch")
+        #expect(t.requests.first?.body == #"{"params":[{"k":590,"v":"1"},{"k":623,"v":"1"}]}"#)
+    }
+
+    @Test func security_outlets_restore_is_one_array_in_lan_with_dry_run() async {
+        let t = TestBackend(mode: .lan, testMode: true)
+        t.store.update { $0.lanCookie = "abc" }
+        t.enqueue(200, TestBackend.fixture("inject_dry_run"))
+        #expect(await t.container.comfort.securityOutlets(.restore) == .success(.dryRunOK))
+        #expect(t.requests.first?.path == "/api/admin/inject")
+        #expect(t.requests.first?.headers["X-Essensys-Test-Mode"] == "dry-run")
+        #expect(t.requests.first?.body == #"[{"k":590,"v":"1"},{"k":623,"v":"2"}]"#)
+    }
+
+    @Test func security_outlets_state_is_read_at_440() async {
+        let t = TestBackend(token: "jwt")
+        t.enqueue(200, #"{"values":[{"k":440,"v":"1"}],"stale":false,"source":"gateway_cache"}"#)
+        t.enqueue(200, #"{"values":[],"stale":false,"source":"none"}"#)
+        #expect(await t.container.comfort.readSecurityOutlets() == .success(.cut))
+        #expect(t.requests.first?.path == "/api/portal/exchange")
+        #expect(t.requests.first?.query == "keys=440")
+        #expect(await t.container.comfort.readSecurityOutlets() == .success(.unknown))
+    }
+
     @Test func alarm_posts_web_actions_in_cloud() async {
         let t = TestBackend(token: "jwt")
         t.enqueue(200, TestBackend.fixture("web_actions_ok"))

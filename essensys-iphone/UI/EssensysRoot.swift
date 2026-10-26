@@ -68,6 +68,7 @@ private struct MainTabs: View {
                                 case .scenarios: ScenariosScreen(model: scenarios, enabled: enabled)
                                 case .waterHeater: WaterHeaterScreen(model: comfort, enabled: enabled)
                                 case .sprinkler: SprinklerScreen(model: comfort, enabled: enabled)
+                                case .securityOutlets: SecurityOutletsScreen(model: comfort, enabled: enabled)
                                 case .alarm: AlarmScreen(model: comfort, enabled: enabled, lanMode: lan)
                                 }
                             }

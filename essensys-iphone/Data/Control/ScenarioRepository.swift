@@ -19,6 +19,17 @@ struct ScenarioDefinition: Equatable, Sendable {
         return (values[index] ?? 0) & bitValue != 0
     }
 
+    /// Choix « Prises de sécurité » du scénario (décalage 31 du bloc, spec security-outlets).
+    var security: IndexTable.ScenarioSecurity {
+        IndexTable.ScenarioSecurity(rawValue: values[IndexTable.scenarioSecurityIndex(slot)] ?? 0) ?? .nothing
+    }
+
+    func withSecurity(_ choice: IndexTable.ScenarioSecurity) -> ScenarioDefinition {
+        var copy = self
+        copy.values[IndexTable.scenarioSecurityIndex(slot)] = choice.rawValue
+        return copy
+    }
+
     func toggled(metaIndex: Int, bitValue: Int, on: Bool) -> ScenarioDefinition {
         guard let index = IndexTable.shiftIntoScenario(metaIndex, slot: slot) else { return self }
         var copy = self

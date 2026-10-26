@@ -39,12 +39,13 @@ enum Destination: String, CaseIterable, Hashable {
 
 /// Écrans poussés depuis l'accueil, avec retour (spec home-dashboard « Navigation »).
 enum Feature: String, CaseIterable, Hashable {
-    case scenarios = "SCENARIOS", waterHeater = "WATER_HEATER", sprinkler = "SPRINKLER", alarm = "ALARM"
+    case scenarios = "SCENARIOS", waterHeater = "WATER_HEATER", sprinkler = "SPRINKLER", securityOutlets = "SECURITY_OUTLETS", alarm = "ALARM"
     var title: String {
         switch self {
         case .scenarios: "Scénarios"
         case .waterHeater: "Chauffe-eau"
         case .sprinkler: "Arrosage"
+        case .securityOutlets: "Prises de sécurité"
         case .alarm: "Alarme"
         }
     }
@@ -78,6 +79,7 @@ struct HomeScreen: View {
             Tile(id: "open-SCENARIOS", title: "Scénarios", description: "Je sors, vacances, personnalisés", icon: "play.circle") { openFeature(.scenarios) },
             Tile(id: "open-WATER_HEATER", title: "Chauffe-eau", description: "Marche, heures creuses, arrêt", icon: "drop") { openFeature(.waterHeater) },
             Tile(id: "open-SPRINKLER", title: "Arrosage", description: "Programmation jardin", icon: "leaf") { openFeature(.sprinkler) },
+            Tile(id: "open-SECURITY_OUTLETS", title: "Prises de sécurité", description: "Couper et rétablir", icon: "powerplug") { openFeature(.securityOutlets) },
         ]
         if FeatureFlags.alarmEnabled {
             tiles.append(Tile(id: "open-ALARM", title: "Alarme", description: "Mise en service et arrêt", icon: "shield") { openFeature(.alarm) })
