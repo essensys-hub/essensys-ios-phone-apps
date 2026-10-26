@@ -106,13 +106,20 @@ struct CloudUser: Decodable, Equatable, Sendable {
 struct ArmoireInfo: Decodable, Equatable, Sendable {
     let serial: String?
     let lastSeen: String?
-    enum CodingKeys: String, CodingKey { case serial = "no_serie", lastSeen = "last_seen" }
+    /// Dernier contact de l'armoire de 2 min au plus ; absent d'un ancien backend, donc faux.
+    let online: Bool?
+    enum CodingKeys: String, CodingKey { case serial = "no_serie", lastSeen = "last_seen", online }
 }
 
 struct PortalSession: Decodable, Equatable, Sendable {
     let user: CloudUser?
     let gateway: GatewayInfo?
     let armoire: ArmoireInfo?
+
+    /// Armoire en ligne : la gateway OU l'armoire elle-même a été vue depuis 2 min au plus.
+    /// Une installation sans gateway n'a pas de bloc `gateway` : seul `armoire.online` compte
+    /// (armoire-online-sans-gateway-2026-10-012, essensys-feature-lifecycle#37).
+    var armoireOnline: Bool { gateway?.online == true || armoire?.online == true }
 }
 
 struct LastAction: Decodable, Equatable, Sendable {

@@ -46,7 +46,9 @@
   "tests": {
     "playwright": [],
     "junit": [
+      "essensys-iphoneTests/PortalOnlineTests.swift",
       "essensys-iphoneTests/ComfortRepositoryTests.swift",
+      "essensys-iphoneUITests/ArmoireOnlineUITests.swift",
       "essensys-iphone/Debug/UITestBackend.swift"
     ],
     "coverage_must_test": [

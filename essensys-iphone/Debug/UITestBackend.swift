@@ -65,7 +65,7 @@ enum UITestBackend {
         case "/api/portal/link-request/status":
             return (200, linked ? #"{"status":"none","portal_access":true}"# : #"{"status":"none","portal_access":false}"#)
         case "/api/portal/session":
-            return (200, #"{"user":{"id":1,"email":"demo@essensys.fr","first_name":"Camille","last_name":"Démo"},"portal_access":true,"gateway":{"id":"gw-demo","online":\#(online)},"armoire":{"id":1,"no_serie":"SC944D-0001","last_seen":"2026-10-25T08:00:00Z"}}"#)
+            return (200, sessionJSON(gatewayOnline: online))
         case "/api/user/me":
             return (200, #"{"user":{"id":1}}"#)
         case "/api/portal/history/latest":
@@ -95,6 +95,26 @@ enum UITestBackend {
             }
             return (404, "Not found")
         }
+    }
+
+    /// Session portail simulée. `UITEST_GATEWAY=none` : installation sans gateway (pas de bloc `gateway`) ;
+    /// `UITEST_ARMOIRE=none|seen|old` : armoire absente, vue il y a peu (`online`) ou ancienne.
+    /// Par défaut, l'armoire est vue si la gateway est en ligne (essensys-feature-lifecycle#37).
+    private static func sessionJSON(gatewayOnline: Bool) -> String {
+        let hasGateway = env["UITEST_GATEWAY"] != "none"
+        let gateway = hasGateway ? #","gateway":{"id":"gw-demo","online":\#(gatewayOnline)}"# : ""
+        let armoire: String
+        switch env["UITEST_ARMOIRE"] {
+        case "none": armoire = ""
+        case "seen": armoire = armoireJSON(online: true)
+        case "old": armoire = armoireJSON(online: false)
+        default: armoire = armoireJSON(online: hasGateway && gatewayOnline)
+        }
+        return #"{"user":{"id":1,"email":"demo@essensys.fr","first_name":"Camille","last_name":"Démo"},"portal_access":true\#(gateway)\#(armoire)}"#
+    }
+
+    private static func armoireJSON(online: Bool) -> String {
+        #","armoire":{"id":1,"no_serie":"SC944D-0001","last_seen":"2026-10-25T08:00:00Z","online":\#(online)}"#
     }
 
     private static func exchangeReply(_ query: String?) -> String {
