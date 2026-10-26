@@ -160,7 +160,7 @@ final class SessionModel {
         while !Task.isCancelled {
             if case let .success(portal) = await container.portal.session() {
                 account = portal
-                gatewayOnline = portal.gateway?.online == true
+                gatewayOnline = portal.armoireOnline
             }
             session = store.state
             try? await Task.sleep(for: sessionPeriod)
