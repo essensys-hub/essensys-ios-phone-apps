@@ -19,10 +19,13 @@ final class APIClient: Sendable {
     private let cloudSession: URLSession
     private let lanSession: URLSession
     private let guardNoArmoire: NoArmoireGuard?
+    private let log: AppLog?
 
     /// - Parameter protocolClasses: backend simulé (tests, mode UI-test) ; nil en production.
-    init(store: SessionStore, guardNoArmoire: Bool, protocolClasses: [AnyClass]? = nil) {
+    /// - Parameter log: journal du bouton Support (méthode, chemin, code, durée ; jamais d'en-tête ni de corps).
+    init(store: SessionStore, guardNoArmoire: Bool, protocolClasses: [AnyClass]? = nil, log: AppLog? = nil) {
         self.store = store
+        self.log = log
         self.guardNoArmoire = guardNoArmoire ? NoArmoireGuard() : nil
         func configuration() -> URLSessionConfiguration {
             let c = URLSessionConfiguration.ephemeral
@@ -71,9 +74,12 @@ final class APIClient: Sendable {
             // Jamais d'armoire réelle en test : l'appel échoue sans partir sur le réseau.
             return .failure(.http(status: 0, code: "no_armoire", text: ArmoireMutationBlocked(request: "\(method) \(url)").description))
         }
+        let start = ContinuousClock.now
+        let elapsed = { Int((ContinuousClock.now - start) / .milliseconds(1)) }
         do {
             let session = state.mode == .cloud ? cloudSession : lanSession
             let (data, response) = try await session.data(for: request)
+            log?.http(method: method, path: url.path, code: (response as? HTTPURLResponse)?.statusCode, ms: elapsed())
             guard let http = response as? HTTPURLResponse else { return .failure(.network(host: host, cause: "réponse invalide")) }
             guard (200..<300).contains(http.statusCode) else {
                 return .failure(ErrorBody.toAPIError(status: http.statusCode, body: data))
@@ -81,8 +87,10 @@ final class APIClient: Sendable {
             return .success(RawResponse(status: http.statusCode, body: data, setCookie: http.value(forHTTPHeaderField: "Set-Cookie")))
         } catch let error as URLError where error.code == .cancelled || error.code == .serverCertificateUntrusted
                     || error.code == .secureConnectionFailed || error.code == .serverCertificateHasUnknownRoot {
+            log?.http(method: method, path: url.path, code: nil, ms: elapsed(), error: "URLError(\(error.code.rawValue))")
             return .failure(.network(host: host, cause: "certificat non confirmé (\(error.code.rawValue))"))
         } catch {
+            log?.http(method: method, path: url.path, code: nil, ms: elapsed(), error: (error as? URLError).map { "URLError(\($0.code.rawValue))" } ?? String(describing: type(of: error)))
             return .failure(.network(host: host, cause: error.localizedDescription))
         }
     }

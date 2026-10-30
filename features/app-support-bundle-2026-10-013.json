@@ -25,19 +25,25 @@
   },
   "implementation": {
     "paths": [
+      "essensys-iphone/Data/Support/AppLog.swift",
+      "essensys-iphone/Data/Support/SupportDiagnostics.swift",
+      "essensys-iphone/Data/Support/SupportBundle.swift",
       "essensys-iphone/Data/HTTP/APIClient.swift",
       "essensys-iphone/Data/AppContainer.swift",
-      "essensys-iphone/UI/SessionModel.swift",
+      "essensys-iphone/UI/Screens/SupportScreen.swift",
       "essensys-iphone/UI/EssensysRoot.swift",
+      "essensys-iphone/UI/SessionModel.swift",
       "essensys-iphone/UI/Screens/MainScreens.swift",
       "essensys-iphone/UI/Screens/AuthScreens.swift",
-      "PRIVACY.md"
+      "essensys-iphone/Debug/UITestBackend.swift",
+      "Config/Info.plist"
     ],
     "primary_surface": "ios"
   },
   "userguide": {
     "pages": [
-      "README.md"
+      "README.md",
+      "PRIVACY.md"
     ],
     "language": "fr",
     "i18n_keys": [],
@@ -49,16 +55,20 @@
   "tests": {
     "playwright": [],
     "junit": [
+      "essensys-iphoneTests/SupportTests.swift",
+      "essensys-iphoneUITests/SupportUITests.swift",
       "essensys-iphone/Debug/UITestBackend.swift"
     ],
     "coverage_must_test": [
-      "diagnostic sans aucun appel inject",
-      "portail injoignable tests appareil renseignes",
-      "session expiree signalee",
-      "mode test actif en attention",
-      "zip contient resume diagnostics journal",
-      "aucun secret dans le zip",
-      "email destinataire objet piece jointe"
+      "diagnostics never send a command",
+      "test mode is a warning",
+      "unreachable portal fails network checks",
+      "expired session is reported",
+      "zip holds summary diagnostics journal",
+      "bundle contains no secret",
+      "email parameters target support zip",
+      "support is reachable before login",
+      "requests are logged without headers body"
     ],
     "smoke_tags": [
       "@nr"

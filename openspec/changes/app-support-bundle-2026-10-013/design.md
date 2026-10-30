@@ -18,11 +18,11 @@ Motivation : voir `proposal.md`. État des lieux (2026-10-30) : l'appli ne tient
 ## Decisions
 
 ### D1 — Journal : `AppLog` en anneau, persisté
-`Data/Support/AppLog.swift` : `actor` avec un tampon de 500 entrées, écrit en JSON lignes dans `Application Support/support/journal.jsonl` (à la mise en arrière-plan et toutes les 50 entrées). `APIClient.get`/`send` notent méthode, chemin (sans paramètres), code, durée et type d'`APIError`, **après** avoir construit la requête mais sans jamais lire ses en-têtes ni son corps. Les modèles (`SessionModel`, `ControlModel`) notent les événements (connexion, état en ligne, mode test).
+`Data/Support/AppLog.swift` : classe `Sendable` protégée par un verrou (appelable de façon synchrone depuis `APIClient`), avec un tampon de 500 entrées, écrit en JSON lignes dans `Application Support/support/journal.jsonl` (à la mise en arrière-plan et toutes les 50 entrées). `APIClient.get`/`send` notent méthode, chemin (sans paramètres), code, durée et type d'`APIError`, **après** avoir construit la requête mais sans jamais lire ses en-têtes ni son corps. Les modèles (`SessionModel`, `ControlModel`) notent les événements (connexion, état en ligne, mode test).
 *Alternative écartée* : `os.Logger`, dont la lecture par `OSLogStore` depuis l'appli est limitée et peu fiable selon les versions d'iOS.
 
 ### D2 — Diagnostics : `SupportDiagnostics`
-Un `TaskGroup` avec un délai par test (8 s ; 25 s au total). Réseau par `NWPathMonitor` (Wi-Fi, cellulaire, autre/VPN), DNS par `getaddrinfo`, horloge par l'en-tête `Date` de `health`. Les requêtes passent par une méthode dédiée d'`APIClient` qui n'écrit pas dans le journal. L'état « en ligne » est lu dans `SessionModel` avec la règle appliquée (voir armoire-online-sans-gateway-2026-10-012).
+Un `TaskGroup` avec un délai par test (8 s ; 25 s au total). Réseau par `NWPathMonitor` (Wi-Fi, cellulaire, autre/VPN), DNS par `getaddrinfo`, horloge par l'en-tête `Date` de `health`. Les requêtes passent par des `URLSession` dédiées (délai de 3 s, même backend simulé en test, épinglage LAN en production), qui n'écrivent pas dans le journal. L'état « en ligne » est lu dans `SessionModel` avec la règle appliquée (voir armoire-online-sans-gateway-2026-10-012).
 
 ### D3 — Bundle : `SupportBundle`
 Les trois fichiers sont écrits dans un dossier temporaire, puis zippés sans dépendance par `NSFileCoordinator.coordinate(readingItemAt:options: .forUploading)`, qui produit un `.zip` du dossier. Copie dans `tmp/support/` sous le nom de la spec ; les anciens bundles sont supprimés.
@@ -35,7 +35,7 @@ Si `MFMailComposeViewController.canSendMail()` : destinataire, objet, corps (ré
 Écran poussé depuis Réglages et depuis l'écran de connexion : liste des tests avec leur statut au fil de l'eau, puis « Envoyer au support » et « Relancer ». Accessible en release.
 
 ### D6 — Tests
-XCTest (`AppLog`, assemblage du bundle, statuts), tests avec `URLProtocol` simulé (health OK, délai, 401, LAN), `NR-ios-20` (non-fuite des secrets), XCUITest `SupportUITests` sur `UITestBackend` (écran, résumé, aucun appel `inject` ; la feuille Mail n'étant pas pilotable en simulateur, le test vérifie les paramètres passés au composeur par un point d'injection de test).
+Swift Testing (`SupportTests` : `AppLog`, assemblage du bundle relu par un lecteur zip minimal, statuts), tests avec `URLProtocol` simulé (health OK, délai, 401, LAN), `NR-ios-20` (non-fuite des secrets), XCUITest `SupportUITests` sur `UITestBackend` (écran, résumé, aucun appel `inject` ; la feuille Mail n'étant pas pilotable en simulateur, l'envoi est relevé en mode UI-test par la sonde `uitest-support-mail`, et `SupportMail.parameters` est testé à part).
 
 ## Risks / Trade-offs
 

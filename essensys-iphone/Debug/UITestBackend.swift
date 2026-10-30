@@ -46,6 +46,12 @@ enum UITestBackend {
     nonisolated(unsafe) private static var temporaryPassword = env["UITEST_TEMP_PASSWORD"] == "1"
 
     static var injectionLog: [String] { lock.withLock { injections } }
+    /// Messages « envoyés » au support : le composeur Mail n'est jamais présenté en test.
+    nonisolated(unsafe) private static var supportMails: [String] = []
+    static var supportMailLog: [String] { lock.withLock { supportMails } }
+    static func recordSupportMail(_ p: SupportMail.Parameters) {
+        lock.withLock { supportMails.append("\(p.recipients.joined(separator: ","))|\(p.subject)|\(p.fileName)|\(p.mimeType)") }
+    }
     /// Mutations hors inject (scénarios, alarme) : « METHOD chemin corps ».
     static var mutationLog: [String] { lock.withLock { mutations } }
 
@@ -68,6 +74,8 @@ enum UITestBackend {
             return (200, sessionJSON(gatewayOnline: online))
         case "/api/user/me":
             return (200, #"{"user":{"id":1}}"#)
+        case "/api/portal/health", "/health":
+            return (200, #"{"status":"ok"}"#)
         case "/api/portal/history/latest":
             return (200, #"{"lastAction":null,"message":"No actions yet"}"#)
         case "/api/portal/inject", "/api/portal/inject/batch", "/api/admin/inject":
@@ -186,6 +194,10 @@ struct UITestProbe: View {
                     .font(.system(size: 1)).opacity(0.01)
                     .accessibilityIdentifier("uitest-mutations")
                     .accessibilityValue(UITestBackend.mutationLog.joined(separator: "|"))
+                Text(UITestBackend.supportMailLog.joined(separator: "\n"))
+                    .font(.system(size: 1)).opacity(0.01)
+                    .accessibilityIdentifier("uitest-support-mail")
+                    .accessibilityValue(UITestBackend.supportMailLog.joined(separator: "\n"))
             }
         }
         .allowsHitTesting(false)
