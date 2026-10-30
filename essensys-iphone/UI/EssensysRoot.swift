@@ -11,6 +11,8 @@ struct EssensysRoot: View {
     @State private var heating: HeatingModel
     @State private var scenarios: ScenariosModel
     @State private var comfort: ComfortModel
+    @State private var support: SupportModel
+    @State private var showSupport = false
 
     init(container: AppContainer) {
         _session = State(initialValue: SessionModel(container: container))
@@ -18,22 +20,27 @@ struct EssensysRoot: View {
         _heating = State(initialValue: HeatingModel(heating: container.heating))
         _scenarios = State(initialValue: ScenariosModel(scenarios: container.scenarios))
         _comfort = State(initialValue: ComfortModel(comfort: container.comfort))
+        _support = State(initialValue: SupportModel(container: container))
     }
 
     var body: some View {
         content.modifier(EssensysThemed(preference: session.session.theme))
+            .sheet(isPresented: $showSupport) {
+                SupportScreen(model: support) { showSupport = false }
+                    .modifier(EssensysThemed(preference: session.session.theme))
+            }
     }
 
     @ViewBuilder private var content: some View {
         if !session.session.isAuthenticated {
-            LoginScreen(model: session)
+            LoginScreen(model: session) { showSupport = true }
         } else if session.session.passwordChangeRequired {
             PasswordChangeScreen(model: session)
         } else {
             Group {
                 switch session.link {
                 case nil: ScreenColumn { ProgressView("Chargement…") }
-                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort)
+                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort) { showSupport = true }
                 case let state?: LinkScreen(model: session, state: state)
                 }
             }
@@ -48,6 +55,7 @@ private struct MainTabs: View {
     let heating: HeatingModel
     let scenarios: ScenariosModel
     let comfort: ComfortModel
+    let openSupport: () -> Void
     @State private var destination: Destination = .home
     @State private var homePath: [Feature] = []
     @Environment(\.scenePhase) private var scenePhase
@@ -84,7 +92,7 @@ private struct MainTabs: View {
                     .tabItem { Label(Destination.shutters.label, systemImage: Destination.shutters.icon) }
                 HeatingScreen(model: heating, enabled: enabled, lanMode: lan).tag(Destination.heating)
                     .tabItem { Label(Destination.heating.label, systemImage: Destination.heating.icon) }
-                SettingsScreen(model: session).tag(Destination.settings)
+                SettingsScreen(model: session, openSupport: openSupport).tag(Destination.settings)
                     .tabItem { Label(Destination.settings.label, systemImage: Destination.settings.icon) }
             }
         }

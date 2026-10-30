@@ -7,6 +7,7 @@ import SwiftUI
 
 struct LoginScreen: View {
     @Bindable var model: SessionModel
+    var openSupport: () -> Void = {}
     @State private var email = ""
     @State private var password = ""
     @State private var lanHost = ""
@@ -47,6 +48,9 @@ struct LoginScreen: View {
                     Button("Oublier le certificat de la gateway") { model.forgetLanCertificate() }.font(.footnote)
                 }
             }
+            // Accessible sans session : l'utilisateur qui n'arrive pas à se connecter en a le plus besoin.
+            Button("Un problème de connexion ? Contacter le support", action: openSupport)
+                .font(.footnote).accessibilityIdentifier("open-support")
         }
         .onAppear { lanHost = model.session.lanHost }
         .alert("Confirmer la gateway", isPresented: Binding(

@@ -54,6 +54,7 @@ final class SessionModel {
     func setMode(_ mode: ConnectionMode) {
         guard mode != session.mode else { return }
         store.update { $0.mode = mode; $0.token = nil; $0.lanCookie = nil; $0.passwordChangeRequired = false }
+        container.appLog.event("session", "Mode \(mode.rawValue)")
         session = store.state
         link = nil
         error = nil
@@ -92,8 +93,10 @@ final class SessionModel {
         busy = true
         defer { busy = false }
         switch await container.auth.login(email: email, password: password) {
-        case let .failed(message): error = message
-        case .loggedIn, .mustChangePassword: session = store.state; await refreshLink()
+        case let .failed(message): error = message; container.appLog.event("session", "Connexion refusée : \(message)")
+        case .loggedIn, .mustChangePassword:
+            container.appLog.event("session", "Connecté (\(session.mode.rawValue))")
+            session = store.state; await refreshLink()
         }
     }
 
@@ -160,6 +163,9 @@ final class SessionModel {
         while !Task.isCancelled {
             if case let .success(portal) = await container.portal.session() {
                 account = portal
+                if portal.armoireOnline != gatewayOnline {
+                    container.appLog.event("online", portal.armoireOnline ? "Armoire en ligne" : "Armoire hors ligne")
+                }
                 gatewayOnline = portal.armoireOnline
             }
             session = store.state
@@ -175,10 +181,15 @@ final class SessionModel {
     }
 
     func setTheme(_ theme: ThemePreference) { store.update { $0.theme = theme }; session = store.state }
-    func setTestMode(_ enabled: Bool) { store.update { $0.testMode = enabled }; session = store.state }
+    func setTestMode(_ enabled: Bool) {
+        store.update { $0.testMode = enabled }
+        container.appLog.event("settings", enabled ? "Mode test activé" : "Mode test désactivé")
+        session = store.state
+    }
 
     func logout() async {
         await container.auth.logout()
+        container.appLog.event("session", "Déconnexion")
         link = nil
         lastAction = nil
         session = store.state

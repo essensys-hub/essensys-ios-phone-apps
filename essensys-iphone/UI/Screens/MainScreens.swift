@@ -124,10 +124,14 @@ struct HomeScreen: View {
 
 struct SettingsScreen: View {
     @Bindable var model: SessionModel
+    var openSupport: () -> Void = {}
     @Environment(\.essensys) private var colors
 
     var body: some View {
         ScreenColumn {
+            EssensysCard(title: "Support", description: "Un problème ? L'appli teste votre connexion et prépare un diagnostic à envoyer par email.") {
+                ActionButton(label: "Contacter le support", action: openSupport).accessibilityIdentifier("open-support")
+            }
             EssensysCard(title: "Connexion") {
                 Text(model.session.mode == .cloud ? "Cloud — mon.essensys.fr"
                      : "Réseau local — \(URL(string: model.session.lanHost)?.host ?? model.session.lanHost)")
