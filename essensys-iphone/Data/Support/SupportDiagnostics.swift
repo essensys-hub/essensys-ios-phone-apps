@@ -136,15 +136,17 @@ final class SupportDiagnostics: Sendable {
     private let lanSession: URLSession
     private let resolve: @Sendable (String) -> Int?
     private let totalTimeout: Duration
+    private let timeZone: TimeZone
 
     /// - Parameter resolve: nombre d'adresses du nom, nil si introuvable (getaddrinfo par défaut).
     init(store: SessionStore, device: DeviceProbe, protocolClasses: [AnyClass]? = nil,
          resolve: @escaping @Sendable (String) -> Int? = SupportDiagnostics.getaddrinfoCount,
-         totalTimeout: Duration = .seconds(25)) {
+         totalTimeout: Duration = .seconds(25), timeZone: TimeZone = .current) {
         self.store = store
         self.device = device
         self.resolve = resolve
         self.totalTimeout = totalTimeout
+        self.timeZone = timeZone
         // Sessions dédiées, sans journal (les tests ne doivent pas le remplir) et à délai court.
         func configuration() -> URLSessionConfiguration {
             let c = URLSessionConfiguration.ephemeral
@@ -263,7 +265,8 @@ final class SupportDiagnostics: Sendable {
         emit("session", .ok, "Session valide" + (session.user?.email.map { " — \($0)" } ?? ""))
 
         if let armoire = session.armoire {
-            emit("armoire", .ok, "Armoire \(armoire.serial ?? "—") · dernier contact \(armoire.lastSeen ?? "inconnu")")
+            let (status, detail) = Self.armoireCheck(armoire, gatewayOnline: session.gateway?.online == true, now: Date(), timeZone: timeZone)
+            emit("armoire", status, detail)
         } else {
             emit("armoire", .warning, "Aucune armoire vue par le serveur")
         }
@@ -335,6 +338,39 @@ final class SupportDiagnostics: Sendable {
         f.timeZone = TimeZone(identifier: "GMT")
         f.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
         return f.date(from: text)
+    }
+
+    static let staleAfter: TimeInterval = 24 * 3600
+
+    /// Test « Armoire associée » (#33) : date locale et durée écoulée. « Attention » si la date manque, ou si
+    /// elle a plus de 24 h sans gateway en ligne pour assurer le contact. `online` vient du serveur (2 min).
+    static func armoireCheck(_ armoire: ArmoireInfo, gatewayOnline: Bool, now: Date, timeZone: TimeZone) -> (CheckStatus, String) {
+        let prefix = "Armoire \(armoire.serial ?? "—") · dernier contact"
+        guard let seen = armoire.lastSeen.flatMap(parseInstant) else { return (.warning, "\(prefix) inconnu") }
+        let age = max(0, now.timeIntervalSince(seen))
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = timeZone
+        f.dateFormat = "dd/MM/yyyy HH:mm"
+        let detail = "\(prefix) \(f.string(from: seen)) (\(elapsed(age)))"
+        if armoire.online == true { return (.ok, detail) }
+        if gatewayOnline { return (.ok, "\(detail) · contact assuré par la gateway") }
+        return (age > staleAfter ? .warning : .ok, detail)
+    }
+
+    /// Libellé identique sur l'Android.
+    static func elapsed(_ seconds: TimeInterval) -> String {
+        switch seconds {
+        case ..<60: "il y a moins d'1 min"
+        case ..<3600: "il y a \(Int(seconds / 60)) min"
+        case ..<(48 * 3600): "il y a \(Int(seconds / 3600)) h"
+        default: "il y a \(Int(seconds / 86_400)) j"
+        }
+    }
+
+    /// ISO 8601 du serveur, avec ou sans fraction de seconde (jusqu'à la microseconde) et avec `Z` ou un décalage.
+    private static func parseInstant(_ raw: String) -> Date? {
+        ISO8601DateFormatter().date(from: raw.replacingOccurrences(of: #"\.\d+"#, with: "", options: .regularExpression))
     }
 
     private static func hostLabel(_ url: String) -> String { URL(string: url)?.host ?? url }

@@ -173,6 +173,68 @@ import Testing
         #expect(detail(r, "network").hasPrefix("Données mobiles"))
     }
 
+    // MARK: Dernier contact de l'armoire (tâche 4.1, #33)
+
+    private static let now = ISO8601DateFormatter().date(from: "2026-10-30T14:00:00Z")!
+    private static let paris = TimeZone(identifier: "Europe/Paris")!
+    private func rule(_ lastSeen: String?, online: Bool = false, gateway: Bool = false) -> (CheckStatus, String) {
+        SupportDiagnostics.armoireCheck(ArmoireInfo(serial: "SC944D-0001", lastSeen: lastSeen, online: online),
+                                        gatewayOnline: gateway, now: Self.now, timeZone: Self.paris)
+    }
+
+    @Test func armoire_last_seen_is_local_with_elapsed_time() {
+        let (status, detail) = rule("2026-10-30T13:59:30Z", online: true)
+        #expect(status == .ok)
+        #expect(detail == "Armoire SC944D-0001 · dernier contact 30/10/2026 14:59 (il y a moins d'1 min)")
+    }
+
+    @Test func armoire_last_seen_rule_follows_gateway_and_age() {
+        let old = "2026-01-22T21:53:02.966462Z"
+        let behindGateway = rule(old, gateway: true)
+        #expect(behindGateway.0 == .ok)
+        #expect(behindGateway.1 == "Armoire SC944D-0001 · dernier contact 22/01/2026 22:53 (il y a 280 j) · contact assuré par la gateway")
+        let alone = rule(old)
+        #expect(alone.0 == .warning)
+        #expect(alone.1 == "Armoire SC944D-0001 · dernier contact 22/01/2026 22:53 (il y a 280 j)")
+        #expect(rule("2026-10-30T09:00:00Z").0 == .ok)
+        #expect(rule("2026-10-29T13:00:00Z").0 == .warning)
+        #expect(rule("2026-10-29T13:00:00+00:00", online: true).0 == .ok)
+    }
+
+    @Test func armoire_last_seen_unknown_is_a_warning() {
+        let unknown = rule(nil, online: true)
+        #expect(unknown.0 == .warning)
+        #expect(unknown.1 == "Armoire SC944D-0001 · dernier contact inconnu")
+        #expect(rule("hier").0 == .warning)
+    }
+
+    @Test func elapsed_labels_match_the_android() {
+        #expect(SupportDiagnostics.elapsed(59) == "il y a moins d'1 min")
+        #expect(SupportDiagnostics.elapsed(3 * 60) == "il y a 3 min")
+        #expect(SupportDiagnostics.elapsed(5 * 3600) == "il y a 5 h")
+        #expect(SupportDiagnostics.elapsed(47 * 3600) == "il y a 47 h")
+        #expect(SupportDiagnostics.elapsed(48 * 3600) == "il y a 2 j")
+    }
+
+    // NR: NR-ios-21 essensys-hub/essensys-ios-phone-apps#33
+    // Une armoire vue il y a 9 mois ne doit plus être « OK » sans explication.
+    @Test func stale_armoire_last_seen_NR_ios_21() async {
+        let seen = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-281 * 86_400))
+        func routes(gateway: Bool) -> Routes {
+            var r = Routes()
+            r.sessionJSON = #"{"user":{},"portal_access":true,"gateway":{"online":\#(gateway)},"armoire":{"no_serie":"X","last_seen":"\#(seen)","online":false}}"#
+            return r
+        }
+        let (_, withGateway) = Self.make(routes: routes(gateway: true))
+        let a = await withGateway.supportDiagnostics.run()
+        #expect(status(a, "armoire") == .ok)
+        #expect(detail(a, "armoire").hasSuffix("(il y a 281 j) · contact assuré par la gateway"), "\(detail(a, "armoire"))")
+        let (_, alone) = Self.make(routes: routes(gateway: false))
+        let b = await alone.supportDiagnostics.run()
+        #expect(status(b, "armoire") == .warning)
+        #expect(detail(b, "armoire").hasSuffix("(il y a 281 j)"), "\(detail(b, "armoire"))")
+    }
+
     // MARK: Bundle (tâche 2.1)
 
     /// Lecteur zip minimal (répertoire central, entrées stockées ou deflate) : pas d'outil d'extraction sur iOS.
