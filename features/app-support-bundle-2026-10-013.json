@@ -1,0 +1,94 @@
+{
+  "$schema": "./schema/feature.schema.json",
+  "id": "app-support-bundle-2026-10-013",
+  "title": "Bouton Support des apps : diagnostics, bundle zip et envoi par email",
+  "status": "proposed",
+  "owner": "rhinosys",
+  "github": {
+    "issue": "essensys-hub/essensys-feature-lifecycle#38",
+    "project_item": "PVTI_lADODqt0Wc4BavHTzhEu7gI"
+  },
+  "git": {
+    "branch": "feat/app-support-bundle-2026-10-013",
+    "pr_url": null
+  },
+  "openspec": {
+    "change_id": "app-support-bundle-2026-10-013",
+    "path": "openspec/changes/app-support-bundle-2026-10-013",
+    "proposal": "openspec/changes/app-support-bundle-2026-10-013/proposal.md",
+    "design": "openspec/changes/app-support-bundle-2026-10-013/design.md",
+    "tasks": "openspec/changes/app-support-bundle-2026-10-013/tasks.md",
+    "specs": [
+      "openspec/changes/app-support-bundle-2026-10-013/specs/support-bundle/spec.md",
+      "openspec/changes/app-support-bundle-2026-10-013/specs/support-bundle-quality/spec.md"
+    ]
+  },
+  "implementation": {
+    "paths": [
+      "essensys-iphone/Data/HTTP/APIClient.swift",
+      "essensys-iphone/Data/AppContainer.swift",
+      "essensys-iphone/UI/SessionModel.swift",
+      "essensys-iphone/UI/EssensysRoot.swift",
+      "essensys-iphone/UI/Screens/MainScreens.swift",
+      "essensys-iphone/UI/Screens/AuthScreens.swift",
+      "PRIVACY.md"
+    ],
+    "primary_surface": "ios"
+  },
+  "userguide": {
+    "pages": [
+      "README.md"
+    ],
+    "language": "fr",
+    "i18n_keys": [],
+    "screenshots": [
+      "img/v2/02-home-light.png",
+      "img/v2/09-heating-light.png"
+    ]
+  },
+  "tests": {
+    "playwright": [],
+    "junit": [
+      "essensys-iphone/Debug/UITestBackend.swift"
+    ],
+    "coverage_must_test": [
+      "diagnostic sans aucun appel inject",
+      "portail injoignable tests appareil renseignes",
+      "session expiree signalee",
+      "mode test actif en attention",
+      "zip contient resume diagnostics journal",
+      "aucun secret dans le zip",
+      "email destinataire objet piece jointe"
+    ],
+    "smoke_tags": [
+      "@nr"
+    ]
+  },
+  "release": {
+    "changelog_entry": "iPhone 2.3.0 : bouton Support, diagnostic et envoi du bundle par email (#38).",
+    "target_tag": "ios-v2.3.0",
+    "surfaces": [
+      "ios"
+    ],
+    "paths": []
+  },
+  "security": {
+    "sca_tool": "dependabot+trivy",
+    "dependabot_alerts_url": "https://github.com/essensys-hub/essensys-ios-phone-apps/security/dependabot",
+    "last_scan_at": null,
+    "cve_findings": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "secret_scan": {
+      "status": "warning",
+      "tool": "gitleaks",
+      "last_scan_at": null
+    },
+    "muted_findings": [],
+    "threat_model_url": null,
+    "owner_security": "rhinosys"
+  }
+}
