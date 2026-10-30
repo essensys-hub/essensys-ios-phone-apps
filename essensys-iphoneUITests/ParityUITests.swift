@@ -60,6 +60,24 @@ final class ParityUITests: XCTestCase {
         }
     }
 
+    /// #27 : la version apparaît sous le bandeau, sur chaque onglet et sur les écrans poussés.
+    @MainActor func test_app_version_visible_on_every_screen() {
+        let app = launch()
+        openHome(app)
+        let version = app.staticTexts["app-version"]
+        XCTAssertTrue(version.waitForExistence(timeout: 5))
+        let label = version.label
+        XCTAssertTrue(label.range(of: #"^Version \d+\.\d+\.\d+"#, options: .regularExpression) != nil, label)
+        for tab in ["Éclairage", "Volets", "Chauffage", "Réglages", "Accueil"] {
+            app.tabBars.buttons[tab].tap()
+            XCTAssertTrue(version.waitForExistence(timeout: 5), tab)
+            XCTAssertEqual(version.label, label, tab)
+        }
+        tap(app, app.buttons["open-SCENARIOS"])
+        XCTAssertEqual(version.label, label)
+        screenshot(app, "app-version-scenarios")
+    }
+
     @MainActor func test_tile_opens_pushed_screen_and_back_returns_home() {
         let app = launch()
         openHome(app)
