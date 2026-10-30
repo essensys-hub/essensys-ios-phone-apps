@@ -128,9 +128,15 @@ private struct MainTabs: View {
             if let info = infoLine {
                 Text(info).font(.caption).foregroundStyle(colors.textMuted).accessibilityIdentifier("session-info")
             }
+            // Visible sur toutes les captures envoyées au support (#27).
+            Text("Version \(appVersion)").font(.caption2).foregroundStyle(colors.textMuted).accessibilityIdentifier("app-version")
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .background(colors.card)
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     }
 
     private var infoLine: String? {
