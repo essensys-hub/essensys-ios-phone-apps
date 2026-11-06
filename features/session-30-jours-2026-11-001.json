@@ -1,0 +1,96 @@
+{
+  "$schema": "./schema/feature.schema.json",
+  "id": "session-30-jours-2026-11-001",
+  "title": "Session de 30 jours : ne plus ressaisir le mot de passe (« Se souvenir de moi »)",
+  "status": "proposed",
+  "owner": "rhinosys",
+  "github": {
+    "issue": "essensys-hub/essensys-feature-lifecycle#39",
+    "project_item": "PVTI_lADODqt0Wc4BavHTzhGg0xQ"
+  },
+  "git": {
+    "branch": "feat/session-30-jours-2026-11-001",
+    "pr_url": null
+  },
+  "openspec": {
+    "change_id": "session-30-jours-2026-11-001",
+    "path": "openspec/changes/session-30-jours-2026-11-001",
+    "proposal": "openspec/changes/session-30-jours-2026-11-001/proposal.md",
+    "design": "openspec/changes/session-30-jours-2026-11-001/design.md",
+    "tasks": "openspec/changes/session-30-jours-2026-11-001/tasks.md",
+    "specs": [
+      "openspec/changes/session-30-jours-2026-11-001/specs/remember-me/spec.md",
+      "openspec/changes/session-30-jours-2026-11-001/specs/remember-me-quality/spec.md"
+    ]
+  },
+  "implementation": {
+    "paths": [
+      "essensys-iphone/Data/Auth/AuthRepository.swift",
+      "essensys-iphone/Data/Session/SessionStore.swift",
+      "essensys-iphone/Data/Session/KeychainPersistence.swift",
+      "essensys-iphone/Data/HTTP/APIClient.swift",
+      "essensys-iphone/UI/SessionModel.swift",
+      "essensys-iphone/UI/Screens/AuthScreens.swift",
+      "essensys-iphone/UI/Screens/MainScreens.swift"
+    ],
+    "primary_surface": "ios"
+  },
+  "userguide": {
+    "pages": [
+      "README.md",
+      "PRIVACY.md"
+    ],
+    "language": "fr",
+    "i18n_keys": [],
+    "screenshots": [
+      "img/v2/02-home-light.png",
+      "img/v2/09-heating-light.png"
+    ]
+  },
+  "tests": {
+    "playwright": [],
+    "junit": [
+      "essensys-iphoneTests/AuthRepositoryTests.swift",
+      "essensys-iphoneTests/KeychainPersistenceTests.swift"
+    ],
+    "coverage_must_test": [
+      "remember me is unchecked by default",
+      "session survives restart",
+      "token refresh is single flight",
+      "remember session is never extended",
+      "logout revokes remember session",
+      "bundle contains no remember token",
+      "server without remember support falls back"
+    ],
+    "smoke_tags": [
+      "@nr"
+    ]
+  },
+  "release": {
+    "changelog_entry": "iPhone 2.4.0 : « Se souvenir de moi », mot de passe non demandé pendant 30 jours (#39).",
+    "target_tag": "ios-v2.4.0",
+    "surfaces": [
+      "ios"
+    ],
+    "paths": []
+  },
+  "security": {
+    "sca_tool": "dependabot+trivy",
+    "dependabot_alerts_url": "https://github.com/essensys-hub/essensys-ios-phone-apps/security/dependabot",
+    "last_scan_at": null,
+    "cve_findings": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "secret_scan": {
+      "status": "warning",
+      "tool": "gitleaks",
+      "last_scan_at": null
+    },
+    "muted_findings": [],
+    "threat_model_url": null,
+    "owner_security": "rhinosys"
+  }
+}
