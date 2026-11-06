@@ -11,6 +11,8 @@ struct LoginScreen: View {
     @State private var email = ""
     @State private var password = ""
     @State private var lanHost = ""
+    /// Décochée à chaque affichage et jamais mémorisée : un téléphone prêté ne garde pas la session par erreur.
+    @State private var rememberMe = false
     @Environment(\.essensys) private var colors
 
     var body: some View {
@@ -36,11 +38,15 @@ struct LoginScreen: View {
                     .textContentType(.username).textFieldStyle(.roundedBorder).accessibilityIdentifier("email")
                 SecureField("Mot de passe", text: $password)
                     .textContentType(.password).textFieldStyle(.roundedBorder).accessibilityIdentifier("password")
+                Toggle("Se souvenir de moi (30 jours)", isOn: $rememberMe)
+                    .foregroundStyle(colors.text).accessibilityIdentifier("remember-me")
                 FeedbackBanner(feedback: model.error.map { Feedback(text: $0, kind: .error) }
-                    ?? model.info.map { Feedback(text: $0, kind: .info) })
+                    ?? model.info.map { Feedback(text: $0, kind: .info) }
+                    ?? (model.session.sessionEnded
+                        ? Feedback(text: "Votre session est terminée : reconnectez-vous.", kind: .info) : nil))
                 ActionButton(label: "Se connecter", loading: model.busy, enabled: !email.isEmpty && !password.isEmpty) {
                     if model.session.mode == .cloud || model.setLanHost(lanHost) {
-                        Task { await model.login(email: email, password: password) }
+                        Task { await model.login(email: email, password: password, rememberMe: rememberMe) }
                     }
                 }
                 .accessibilityIdentifier("login")

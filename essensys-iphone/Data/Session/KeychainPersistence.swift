@@ -17,11 +17,14 @@ struct KeychainPersistence: SessionPersistence {
     private var defaults: UserDefaults { suiteName.flatMap(UserDefaults.init(suiteName:)) ?? .standard }
 
     private enum Key: String {
-        case token, lanCookie = "lan_cookie", pinnedCert = "pinned_lan_cert"
+        case token, lanCookie = "lan_cookie", pinnedCert = "pinned_lan_cert", rememberToken = "remember_token"
     }
     private enum Pref: String {
         case mode = "essensys.mode", lanHost = "essensys.lan_host", theme = "essensys.theme"
         case testMode = "essensys.test_mode", passwordChange = "essensys.password_change_required"
+        case rememberExpires = "essensys.remember_expires_at"
+        /// Présent dès le premier lancement : le Keychain survit à la désinstallation, pas UserDefaults.
+        case launchMarker = "essensys.keychain_marker"
     }
 
     /// Supprime la configuration v1 ; retourne vrai si des identifiants en clair existaient.
@@ -32,7 +35,17 @@ struct KeychainPersistence: SessionPersistence {
         return existed
     }
 
+    /// Après une réinstallation, UserDefaults est vide mais le Keychain garde la session mémorisée : on la supprime
+    /// (spec remember-me « Stockage sécurisé »). Le jeton d'accès et le cookie ne sont pas concernés, comme avant.
+    private func purgeOrphanRememberSession() {
+        guard defaults.object(forKey: Pref.launchMarker.rawValue) == nil else { return }
+        SecItemDelete(query(.rememberToken) as CFDictionary)
+        defaults.removeObject(forKey: Pref.rememberExpires.rawValue)
+        defaults.set(true, forKey: Pref.launchMarker.rawValue)
+    }
+
     func load() -> SessionState {
+        purgeOrphanRememberSession()
         var state = SessionState()
         state.mode = defaults.string(forKey: Pref.mode.rawValue).flatMap(ConnectionMode.init(rawValue:)) ?? .cloud
         state.lanHost = defaults.string(forKey: Pref.lanHost.rawValue) ?? Hosts.lanDefault
@@ -42,6 +55,14 @@ struct KeychainPersistence: SessionPersistence {
         state.token = read(.token).flatMap { String(data: $0, encoding: .utf8) }
         state.lanCookie = read(.lanCookie).flatMap { String(data: $0, encoding: .utf8) }
         state.pinnedLanCertificate = read(.pinnedCert)
+        state.rememberToken = read(.rememberToken).flatMap { String(data: $0, encoding: .utf8) }
+        if defaults.object(forKey: Pref.rememberExpires.rawValue) != nil {
+            state.rememberExpiresAt = Date(timeIntervalSince1970: defaults.double(forKey: Pref.rememberExpires.rawValue))
+        }
+        // En cloud, une date sans jeton (ou l'inverse) est un reste : aucune session mémorisée.
+        if state.mode == .cloud, (state.rememberToken == nil) != (state.rememberExpiresAt == nil) {
+            state.rememberToken = nil; state.rememberExpiresAt = nil
+        }
         return state
     }
 
@@ -54,6 +75,13 @@ struct KeychainPersistence: SessionPersistence {
         write(.token, state.token.map { Data($0.utf8) })
         write(.lanCookie, state.lanCookie.map { Data($0.utf8) })
         write(.pinnedCert, state.pinnedLanCertificate)
+        write(.rememberToken, state.rememberToken.map { Data($0.utf8) })
+        if let until = state.rememberExpiresAt {
+            defaults.set(until.timeIntervalSince1970, forKey: Pref.rememberExpires.rawValue)
+        } else {
+            defaults.removeObject(forKey: Pref.rememberExpires.rawValue)
+        }
+        defaults.set(true, forKey: Pref.launchMarker.rawValue)
     }
 
     private func query(_ key: Key) -> [String: Any] {

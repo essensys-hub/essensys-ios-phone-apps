@@ -53,7 +53,10 @@ final class SessionModel {
 
     func setMode(_ mode: ConnectionMode) {
         guard mode != session.mode else { return }
-        store.update { $0.mode = mode; $0.token = nil; $0.lanCookie = nil; $0.passwordChangeRequired = false }
+        store.update {
+            $0.mode = mode; $0.token = nil; $0.lanCookie = nil; $0.passwordChangeRequired = false
+            $0.rememberToken = nil; $0.rememberExpiresAt = nil; $0.sessionEnded = false
+        }
         container.appLog.event("session", "Mode \(mode.rawValue)")
         session = store.state
         link = nil
@@ -77,7 +80,7 @@ final class SessionModel {
         return true
     }
 
-    func login(email: String, password: String) async {
+    func login(email: String, password: String, rememberMe: Bool = false) async {
         error = nil
         if session.mode == .lan, session.pinnedLanCertificate == nil {
             busy = true
@@ -92,7 +95,7 @@ final class SessionModel {
         }
         busy = true
         defer { busy = false }
-        switch await container.auth.login(email: email, password: password) {
+        switch await container.auth.login(email: email, password: password, rememberMe: rememberMe) {
         case let .failed(message): error = message; container.appLog.event("session", "Connexion refusée : \(message)")
         case .loggedIn, .mustChangePassword:
             container.appLog.event("session", "Connecté (\(session.mode.rawValue))")

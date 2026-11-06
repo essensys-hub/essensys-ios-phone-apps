@@ -21,9 +21,12 @@ final class AuthRepository: Sendable {
         self.store = store
     }
 
-    func login(email: String, password: String) async -> LoginOutcome {
+    /// - Parameter rememberMe: demande une session de 30 jours. Un serveur qui ne la prend pas en charge ne renvoie
+    ///   rien : la connexion réussit alors comme sans l'option (spec « Serveur sans prise en charge »).
+    func login(email: String, password: String, rememberMe: Bool = false) async -> LoginOutcome {
         let mode = store.state.mode
-        let body = LoginRequest(email: email.trimmingCharacters(in: .whitespaces), password: password)
+        let body = LoginRequest(email: email.trimmingCharacters(in: .whitespaces), password: password,
+                                rememberMe: rememberMe ? true : nil)
         switch await api.send("POST", "/api/auth/login", body: body) {
         case let .failure(error):
             return .failed(loginMessage(error))
@@ -34,19 +37,32 @@ final class AuthRepository: Sendable {
                     return .failed("Réponse du serveur illisible.")
                 }
                 let mustChange = login.passwordChangeRequired ?? false
-                store.update { $0.token = login.token; $0.lanCookie = nil; $0.passwordChangeRequired = mustChange }
+                let until = rememberMe ? RememberDate.parse(login.rememberExpiresAt) : nil
+                let remembered = until != nil ? login.rememberToken.flatMap { $0.isEmpty ? nil : $0 } : nil
+                store.update {
+                    $0.token = login.token; $0.lanCookie = nil; $0.passwordChangeRequired = mustChange; $0.sessionEnded = false
+                    $0.rememberToken = remembered
+                    $0.rememberExpiresAt = remembered == nil ? nil : until
+                }
                 return mustChange ? .mustChangePassword : .loggedIn
             case .lan:
                 guard let cookie = APIClient.extractLanCookie(response.setCookie) else {
                     return .failed("La gateway n'a pas ouvert de session.")
                 }
-                store.update { $0.lanCookie = cookie; $0.token = nil; $0.passwordChangeRequired = false }
+                let until = rememberMe
+                    ? (try? JSONDecoder().decode(LanLoginResponse.self, from: response.body)).flatMap { RememberDate.parse($0.rememberExpiresAt) }
+                    : nil
+                store.update {
+                    $0.lanCookie = cookie; $0.token = nil; $0.passwordChangeRequired = false; $0.sessionEnded = false
+                    $0.rememberToken = nil; $0.rememberExpiresAt = until
+                }
                 return .loggedIn
             }
         }
     }
 
-    /// Cloud : même jeton conservé. LAN : la gateway détruit toutes les sessions, y compris la courante.
+    /// Cloud : même jeton d'accès conservé, mais le serveur a révoqué toutes les sessions mémorisées, y compris celle
+    /// de ce téléphone : on l'oublie. LAN : la gateway détruit toutes les sessions, y compris la courante.
     func changePassword(current: String, new: String) async -> Result<Void, APIError> {
         let mode = store.state.mode
         let body = PasswordChangeRequest(currentPassword: current, newPassword: new)
@@ -56,14 +72,22 @@ final class AuthRepository: Sendable {
         switch result {
         case let .failure(error): return .failure(error)
         case .success:
-            if mode == .lan { store.clearSession() } else { store.update { $0.passwordChangeRequired = false } }
+            if mode == .lan {
+                store.clearSession()
+            } else {
+                store.update { $0.passwordChangeRequired = false; $0.rememberToken = nil; $0.rememberExpiresAt = nil }
+            }
             return .success(())
         }
     }
 
+    /// La session locale disparaît tout de suite, réseau ou non ; la révocation côté serveur part ensuite avec
+    /// les identifiants d'avant, au mieux : son échec n'est jamais montré.
     func logout() async {
-        _ = await api.send("POST", "/api/auth/logout", body: EmptyBody?.none)
+        let before = store.state
         store.clearSession()
+        let body = before.mode == .cloud ? before.rememberToken.map(LogoutRequest.init) : nil
+        _ = await api.send("POST", "/api/auth/logout", body: body, using: before)
     }
 
     /// Réaction centralisée (spec « Expiration et révocation »).

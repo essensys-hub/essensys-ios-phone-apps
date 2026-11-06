@@ -165,6 +165,10 @@ struct SettingsScreen: View {
                             .font(.caption).foregroundStyle(colors.textMuted).accessibilityIdentifier("account-armoire")
                     }
                 }
+                if let until = model.session.rememberExpiresAt, until > Date() {
+                    Text("Connecté jusqu'au \(formatRememberUntil(until))")
+                        .font(.caption).foregroundStyle(colors.textMuted).accessibilityIdentifier("remember-until")
+                }
                 ActionButton(label: "Se déconnecter", tone: .danger) { Task { await model.logout() } }
                     .accessibilityIdentifier("logout")
                 Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")")

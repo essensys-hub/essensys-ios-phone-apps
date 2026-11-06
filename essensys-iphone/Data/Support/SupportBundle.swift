@@ -2,7 +2,7 @@
 //  SupportBundle.swift
 //  Bundle zip du support (jumeau de SupportBundle.kt) : `resume.txt`, `diagnostics.json`, `journal.jsonl`.
 //  Construit par liste blanche (décision C4) ; en dernier rempart, les secrets connus de la session
-//  (jeton, cookie LAN) sont masqués partout. Zip produit sans dépendance par NSFileCoordinator (design D3).
+//  (jeton, cookie LAN, session mémorisée) sont masqués partout. Zip produit sans dépendance par NSFileCoordinator (design D3).
 //
 
 import Foundation
@@ -79,7 +79,7 @@ final class SupportBundle: Sendable {
 
     private func redact(_ text: String) -> String {
         let state = store.state
-        return [state.token, state.lanCookie].compactMap { $0 }.filter { $0.count >= 6 }
+        return [state.token, state.lanCookie, state.rememberToken].compactMap { $0 }.filter { $0.count >= 6 }
             .reduce(text) { $0.replacingOccurrences(of: $1, with: "•••") }
     }
 
