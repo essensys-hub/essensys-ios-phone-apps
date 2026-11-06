@@ -21,6 +21,12 @@ struct SessionState: Equatable, Sendable {
     var lanHost: String = Hosts.lanDefault
     var token: String?
     var lanCookie: String?
+    /// Session « Se souvenir de moi » (cloud) : échangée contre un jeton de 24 h sans ressaisir le mot de passe.
+    var rememberToken: String?
+    /// Fin de la session mémorisée, telle que renvoyée par le serveur (cloud et réseau local), jamais calculée ici.
+    var rememberExpiresAt: Date?
+    /// Vrai quand le serveur a mis fin à la session mémorisée : l'écran de connexion le dit. Non persisté.
+    var sessionEnded = false
     var passwordChangeRequired = false
     var theme: ThemePreference = .system
     var testMode = false
@@ -67,9 +73,15 @@ final class SessionStore: Sendable {
         observers.withLock { $0 }.forEach { $0(next) }
     }
 
-    /// Efface jeton, cookie et verrou ; garde les préférences (mode, hôte, thème, certificat épinglé).
-    func clearSession() {
-        update { $0.token = nil; $0.lanCookie = nil; $0.passwordChangeRequired = false }
+    /// Efface jeton, cookie, session mémorisée et verrou ; garde les préférences (mode, hôte, thème, certificat épinglé).
+    /// - Parameter ended: la session mémorisée est terminée (message sur l'écran de connexion). Sans valeur, le
+    ///   message déjà posé est conservé : le 401 qui suit un renouvellement refusé ne l'efface pas.
+    func clearSession(ended: Bool? = nil) {
+        update {
+            $0.token = nil; $0.lanCookie = nil; $0.rememberToken = nil; $0.rememberExpiresAt = nil
+            $0.passwordChangeRequired = false
+            if let ended { $0.sessionEnded = ended }
+        }
     }
 
     func observe(_ observer: @escaping @Sendable (SessionState) -> Void) {

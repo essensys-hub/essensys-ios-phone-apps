@@ -5,12 +5,46 @@
 
 import Foundation
 
-struct LoginRequest: Encodable { let email: String; let password: String }
+/// `remember_me` n'est envoyé que s'il est vrai : sans l'option, le corps reste celui d'avant.
+struct LoginRequest: Encodable {
+    let email: String
+    let password: String
+    var rememberMe: Bool?
+    enum CodingKeys: String, CodingKey { case email, password, rememberMe = "remember_me" }
+}
 
 struct CloudLoginResponse: Decodable {
     let token: String
     let passwordChangeRequired: Bool?
+    let rememberToken: String?
+    let rememberExpiresAt: String?
+    enum CodingKeys: String, CodingKey {
+        case token, passwordChangeRequired = "password_change_required"
+        case rememberToken = "remember_token", rememberExpiresAt = "remember_expires_at"
+    }
+}
+
+/// Connexion en réseau local : le cookie porte la session, le corps donne seulement la fin des 30 jours.
+struct LanLoginResponse: Decodable {
+    let rememberExpiresAt: String?
+    enum CodingKeys: String, CodingKey { case rememberExpiresAt = "remember_expires_at" }
+}
+
+struct RememberRefreshRequest: Encodable {
+    let rememberToken: String
+    enum CodingKeys: String, CodingKey { case rememberToken = "remember_token" }
+}
+
+/// Le renouvellement ne renvoie jamais `remember_expires_at` : la durée de 30 jours est fixe.
+struct RememberRefreshResponse: Decodable {
+    let token: String
+    let passwordChangeRequired: Bool?
     enum CodingKeys: String, CodingKey { case token, passwordChangeRequired = "password_change_required" }
+}
+
+struct LogoutRequest: Encodable {
+    let rememberToken: String
+    enum CodingKeys: String, CodingKey { case rememberToken = "remember_token" }
 }
 
 struct PasswordChangeRequest: Encodable {

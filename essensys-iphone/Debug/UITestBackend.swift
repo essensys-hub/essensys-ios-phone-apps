@@ -46,6 +46,9 @@ enum UITestBackend {
     nonisolated(unsafe) private static var temporaryPassword = env["UITEST_TEMP_PASSWORD"] == "1"
 
     static var injectionLog: [String] { lock.withLock { injections } }
+    /// Connexions et déconnexions reçues (« login remember_me=true », « logout {corps} ») : sonde `uitest-logins`.
+    nonisolated(unsafe) private static var logins: [String] = []
+    static var loginLog: [String] { lock.withLock { logins } }
     /// Messages « envoyés » au support : le composeur Mail n'est jamais présenté en test.
     nonisolated(unsafe) private static var supportMails: [String] = []
     static var supportMailLog: [String] { lock.withLock { supportMails } }
@@ -63,11 +66,18 @@ enum UITestBackend {
         switch path {
         case "/api/auth/login":
             let temp = lock.withLock { temporaryPassword }
-            return (200, #"{"token":"jwt-uitest","password_change_required":\#(temp)}"#)
+            let remember = body.contains(#""remember_me":true"#)
+            lock.withLock { logins.append("login remember_me=\(remember)") }
+            // Session mémorisée simulée : fin à 30 jours, comme le serveur la fixe à la saisie du mot de passe.
+            let until = ISO8601DateFormatter().string(from: Date().addingTimeInterval(30 * 86_400))
+            let extra = remember ? #","remember_token":"remember-uitest","remember_expires_at":"\#(until)""# : ""
+            return (200, #"{"token":"jwt-uitest","password_change_required":\#(temp)\#(extra)}"#)
         case "/api/auth/password/change":
             lock.withLock { temporaryPassword = false }
             return (200, #"{"message":"Mot de passe mis à jour."}"#)
-        case "/api/auth/logout": return (200, "")
+        case "/api/auth/logout":
+            lock.withLock { logins.append("logout \(body)") }
+            return (200, "")
         case "/api/portal/link-request/status":
             return (200, linked ? #"{"status":"none","portal_access":true}"# : #"{"status":"none","portal_access":false}"#)
         case "/api/portal/session":
@@ -194,6 +204,10 @@ struct UITestProbe: View {
                     .font(.system(size: 1)).opacity(0.01)
                     .accessibilityIdentifier("uitest-mutations")
                     .accessibilityValue(UITestBackend.mutationLog.joined(separator: "|"))
+                Text(UITestBackend.loginLog.joined(separator: "|"))
+                    .font(.system(size: 1)).opacity(0.01)
+                    .accessibilityIdentifier("uitest-logins")
+                    .accessibilityValue(UITestBackend.loginLog.joined(separator: "|"))
                 Text(UITestBackend.supportMailLog.joined(separator: "\n"))
                     .font(.system(size: 1)).opacity(0.01)
                     .accessibilityIdentifier("uitest-support-mail")

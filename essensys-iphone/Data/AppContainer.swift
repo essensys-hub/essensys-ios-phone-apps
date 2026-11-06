@@ -20,16 +20,18 @@ final class AppContainer: Sendable {
     let supportBundle: SupportBundle
 
     /// - Parameters syncPoll, syncTimeout : périodes de synchronisation du chauffage (courtes en test).
+    /// - Parameter now: horloge de la couche réseau (fin de session mémorisée), contrôlée dans les tests.
     /// - Parameters appLog, device, supportDirectory : bouton Support (app-support-bundle-2026-10-013) ;
     ///   journal en mémoire et appareil fixe par défaut (tests).
     init(store: SessionStore, guardNoArmoire: Bool, protocolClasses: [AnyClass]? = nil,
+         now: @escaping @Sendable () -> Date = { Date() },
          syncPoll: Duration = .seconds(3), syncTimeout: Duration = .seconds(90),
          appLog: AppLog = AppLog(), device: DeviceProbe = StaticDeviceProbe(),
          supportDirectory: URL = SupportBundle.defaultDirectory(),
          resolve: @escaping @Sendable (String) -> Int? = SupportDiagnostics.getaddrinfoCount) {
         self.store = store
         self.appLog = appLog
-        api = APIClient(store: store, guardNoArmoire: guardNoArmoire, protocolClasses: protocolClasses, log: appLog)
+        api = APIClient(store: store, guardNoArmoire: guardNoArmoire, protocolClasses: protocolClasses, log: appLog, now: now)
         auth = AuthRepository(api: api, store: store)
         control = ControlRepository(api: api, store: store, auth: auth)
         portal = PortalRepository(api: api, auth: auth)

@@ -20,12 +20,17 @@ final class APIClient: Sendable {
     private let lanSession: URLSession
     private let guardNoArmoire: NoArmoireGuard?
     private let log: AppLog?
+    private let now: @Sendable () -> Date
+    private let remember = RememberRefresher()
 
     /// - Parameter protocolClasses: backend simulé (tests, mode UI-test) ; nil en production.
     /// - Parameter log: journal du bouton Support (méthode, chemin, code, durée ; jamais d'en-tête ni de corps).
-    init(store: SessionStore, guardNoArmoire: Bool, protocolClasses: [AnyClass]? = nil, log: AppLog? = nil) {
+    /// - Parameter now: horloge, contrôlée dans les tests de la session mémorisée.
+    init(store: SessionStore, guardNoArmoire: Bool, protocolClasses: [AnyClass]? = nil, log: AppLog? = nil,
+         now: @escaping @Sendable () -> Date = { Date() }) {
         self.store = store
         self.log = log
+        self.now = now
         self.guardNoArmoire = guardNoArmoire ? NoArmoireGuard() : nil
         func configuration() -> URLSessionConfiguration {
             let c = URLSessionConfiguration.ephemeral
@@ -51,13 +56,69 @@ final class APIClient: Sendable {
         return encoder
     }
 
-    func send<Body: Encodable>(_ method: String, _ path: String, body: Body?) async -> Result<RawResponse, APIError> {
+    /// - Parameter snapshot: identifiants à utiliser à la place de ceux du magasin (déconnexion : la session locale
+    ///   est déjà effacée quand la requête part).
+    func send<Body: Encodable>(_ method: String, _ path: String, body: Body?,
+                               using snapshot: SessionState? = nil) async -> Result<RawResponse, APIError> {
         let data = body.flatMap { try? Self.encoder().encode($0) }
-        return await execute(method: method, path: path, body: data)
+        return await execute(method: method, path: path, body: data, using: snapshot)
     }
 
-    private func execute(method: String, path: String, body: Data?) async -> Result<RawResponse, APIError> {
+    private static let authPrefix = "/api/auth/"
+
+    /// Session mémorisée, en cloud, pour une route qui n'est pas elle-même l'authentification (un 401 y a un autre sens).
+    private func isRenewable(path: String, sent: SessionState) -> Bool {
+        sent.mode == .cloud && sent.rememberToken != nil && !path.hasPrefix(Self.authPrefix)
+    }
+
+    private func execute(method: String, path: String, body: Data?,
+                         using snapshot: SessionState? = nil) async -> Result<RawResponse, APIError> {
+        let sent = snapshot ?? store.state
+        let first = await perform(method: method, path: path, body: body, state: sent)
+        guard snapshot == nil, case .failure(.unauthorized) = first, isRenewable(path: path, sent: sent) else { return first }
+        // L'horloge locale ne fait qu'éviter un appel inutile : le serveur reste l'autorité sur la fin des 30 jours.
+        if let until = sent.rememberExpiresAt, until <= now() {
+            store.clearSession(ended: true)
+            log?.event("session", "Session mémorisée arrivée à échéance")
+            return first
+        }
+        switch await remember.renew(staleToken: sent.token, current: { [store] in store.state.token },
+                                    perform: { [self] in await renewAccess() }) {
+        case .renewed: return await perform(method: method, path: path, body: body, state: store.state)
+        case .rejected: return first
+        case .unavailable:
+            // Pas de 401 : les dépôts effaceraient la session mémorisée alors que le serveur n'a rien refusé.
+            let host = URL(string: sent.baseURL)?.host ?? sent.baseURL
+            return .failure(.network(host: host, cause: "renouvellement de la session impossible"))
+        }
+    }
+
+    /// Échange la session mémorisée contre un jeton d'accès de 24 h. `remember_expires_at` n'est jamais relu :
+    /// les 30 jours partent de la saisie du mot de passe.
+    private func renewAccess() async -> RememberRefresher.Outcome {
         let state = store.state
+        guard let rememberToken = state.rememberToken else { return .rejected }
+        let body = try? Self.encoder().encode(RememberRefreshRequest(rememberToken: rememberToken))
+        switch await perform(method: "POST", path: Self.authPrefix + "remember/refresh", body: body, state: state, authenticated: false) {
+        case let .success(response):
+            guard let renewed = try? JSONDecoder().decode(RememberRefreshResponse.self, from: response.body) else { return .unavailable }
+            store.update {
+                $0.token = renewed.token
+                if let mustChange = renewed.passwordChangeRequired { $0.passwordChangeRequired = mustChange }
+            }
+            log?.event("session", "Accès renouvelé par la session mémorisée")
+            return .renewed
+        case .failure(.unauthorized), .failure(.forbidden):
+            store.clearSession(ended: true)
+            log?.event("session", "Session mémorisée terminée par le serveur")
+            return .rejected
+        case .failure:
+            return .unavailable
+        }
+    }
+
+    private func perform(method: String, path: String, body: Data?, state: SessionState,
+                         authenticated: Bool = true) async -> Result<RawResponse, APIError> {
         let base = state.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let host = URL(string: base)?.host ?? base
         guard let url = URL(string: base + path) else { return .failure(.network(host: host, cause: "URL invalide")) }
@@ -65,9 +126,11 @@ final class APIClient: Sendable {
         request.httpMethod = method
         request.httpBody = body
         if body != nil { request.setValue("application/json", forHTTPHeaderField: "Content-Type") }
-        switch state.mode {
-        case .cloud: if let token = state.token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        case .lan: if let cookie = state.lanCookie { request.setValue("\(Self.lanCookieName)=\(cookie)", forHTTPHeaderField: "Cookie") }
+        if authenticated {
+            switch state.mode {
+            case .cloud: if let token = state.token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+            case .lan: if let cookie = state.lanCookie { request.setValue("\(Self.lanCookieName)=\(cookie)", forHTTPHeaderField: "Cookie") }
+            }
         }
         if state.testMode { request.setValue(NoArmoireGuard.dryRun, forHTTPHeaderField: NoArmoireGuard.testModeHeader) }
         if let guardNoArmoire, guardNoArmoire.shouldBlock(request) {

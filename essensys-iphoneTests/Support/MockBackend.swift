@@ -80,7 +80,8 @@ final class TestBackend {
     private var replies: [MockReply] = []
     private let queue = ReplyQueue()
 
-    init(mode: ConnectionMode = .cloud, token: String? = nil, testMode: Bool = false) {
+    init(mode: ConnectionMode = .cloud, token: String? = nil, testMode: Bool = false,
+         now: @escaping @Sendable () -> Date = { Date() }) {
         var state = SessionState()
         state.mode = mode
         state.cloudHost = "https://\(host)"
@@ -88,7 +89,7 @@ final class TestBackend {
         state.token = token
         state.testMode = testMode
         store = SessionStore(persistence: InMemoryPersistence(initial: state))
-        container = AppContainer(store: store, guardNoArmoire: true, protocolClasses: [MockURLProtocol.self])
+        container = AppContainer(store: store, guardNoArmoire: true, protocolClasses: [MockURLProtocol.self], now: now)
         let queue = self.queue
         MockURLProtocol.register(host: host) { _ in queue.next() }
     }
