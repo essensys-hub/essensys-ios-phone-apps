@@ -13,5 +13,5 @@
 ## 3. Qualité et livraison (#37)
 
 - [x] 3.1 Ajouter `NR-ios-22` (aucune prolongation par l'usage : renouvellements quotidiens pendant 29 jours, refus le 31e) et `NR-ios-23` (ni mot de passe, ni jeton, ni session mémorisée dans le journal et le bundle Support) avec une horloge contrôlée ; vérifier par leur passage dans les tests unitaires, puis les scénarios de reprise et de fin de session sur simulateur dans les deux modes, sans armoire réelle
-- [ ] 3.2 CI verte, `/checkup` vert, captures de l'écran de connexion et des Réglages sur #39, README et version 2.4.0
+- [x] 3.2 CI verte, `/checkup` vert, captures de l'écran de connexion et des Réglages sur #39, README et version 2.4.0 (la version est passée à l'archive (`MARKETING_VERSION`), le dépôt reste en 2.1.0)
 - [ ] 3.3 Une fois les backends déployés : vérification réelle par un humain (connexion cochée, redémarrage de l'iPhone, lendemain) sur TestFlight, puis tag `ios-v2.4.0`

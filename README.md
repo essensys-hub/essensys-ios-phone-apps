@@ -8,6 +8,7 @@ L'application iPhone officielle pour piloter une installation domotique Essensys
 
 - **Connexion cloud** avec votre compte du portail (email et mot de passe), y compris le changement obligatoire d'un mot de passe temporaire.
 - **Connexion réseau local** directement à la gateway, en HTTPS uniquement. Le certificat de la gateway est confirmé une seule fois, à la première connexion.
+- **Se souvenir de moi (30 jours)** : case décochée par défaut sur l'écran de connexion, en cloud comme en réseau local. Cochée, le mot de passe n'est plus demandé pendant 30 jours après sa saisie, même si l'application est fermée ou si l'iPhone redémarre ; les 30 jours ne sont pas prolongés par l'usage et la date de fin s'affiche dans les Réglages. Le mot de passe n'est jamais conservé. Se déconnecter, changer le mot de passe ou désactiver le compte met fin à la session.
 - **Liaison de l'armoire** : un compte sans armoire liée peut demander la liaison depuis l'application.
 - **Accueil** : scénarios rapides (Je sors, Je rentre, Je vais me coucher, Je me lève) et une tuile par fonction.
 - **Éclairage** : par pièce, éclairage principal et indirect, « tout allumer » et « tout éteindre ».
@@ -39,6 +40,10 @@ Les notifications SMS et email et les caméras UniFi Protect restent accessibles
 | Chauffage | Chauffage (sombre) | Scénarios | Chauffe-eau |
 |---|---|---|---|
 | ![Chauffage](img/v2/09-heating-light.png) | ![Chauffage sombre](img/v2/13-heating-dark.png) | ![Scénarios](img/v2/11-scenarios-light.png) | ![Chauffe-eau](img/v2/12-water-heater-light.png) |
+
+| Se souvenir de moi | Réglages (session mémorisée) |
+|---|---|
+| ![Se souvenir de moi](img/v2/14-login-remember-light.png) | ![Connecté jusqu'au](img/v2/15-settings-remember-light.png) |
 
 ## Installation (testeurs, via TestFlight)
 
