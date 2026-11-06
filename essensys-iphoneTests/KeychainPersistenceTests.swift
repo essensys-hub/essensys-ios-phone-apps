@@ -77,4 +77,20 @@ import Testing
         store.update { $0.token = "jwt"; $0.rememberToken = "remember-secret-value"; $0.rememberExpiresAt = Date(timeIntervalSince1970: 1_800_000_000) }
         for _ in 0..<2 { #expect(SessionStore(persistence: persistence).state.rememberToken == "remember-secret-value") }
     }
+
+    @Test func lan_remember_expiry_survives_reopen_and_ends_with_the_session() {
+        let persistence = KeychainPersistence(service: "essensys.tests.\(UUID().uuidString)", suiteName: suite)
+        let until = Date(timeIntervalSince1970: 1_800_000_000)
+        SessionStore(persistence: persistence).update { $0.mode = .lan; $0.lanCookie = "lan-cookie-value"; $0.rememberExpiresAt = until }
+        let reopened = SessionStore(persistence: persistence)
+        #expect(reopened.state.mode == .lan)
+        #expect(reopened.state.lanCookie == "lan-cookie-value")
+        #expect(reopened.state.rememberExpiresAt == until)
+        #expect(reopened.state.rememberToken == nil)
+        reopened.clearSession()
+        let cleared = SessionStore(persistence: persistence).state
+        #expect(cleared.lanCookie == nil)
+        #expect(cleared.rememberExpiresAt == nil)
+    }
 }
+

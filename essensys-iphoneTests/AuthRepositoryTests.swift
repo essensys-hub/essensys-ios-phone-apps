@@ -180,6 +180,16 @@ struct AuthRepositoryTests {
         #expect(t.store.state.rememberExpiresAt == nil)
     }
 
+    @Test func lan_session_refused_by_the_gateway_ends_the_remembered_session() async {
+        let t = TestBackend(mode: .lan)
+        t.store.update { $0.lanCookie = "abc"; $0.rememberExpiresAt = Date().addingTimeInterval(86_400) }
+        t.enqueue(401, "Unauthorized\n", headers: [:])
+        _ = await t.container.portal.lanSessionValid()
+        #expect(t.requests.map(\.path).count == 1, "la gateway n'a pas de renouvellement : aucun rejeu")
+        #expect(t.store.state.lanCookie == nil)
+        #expect(t.store.state.rememberExpiresAt == nil)
+    }
+
     @Test func cloud_password_change_forgets_the_remembered_session_but_keeps_access() async {
         let t = TestBackend()
         Self.remembered(t)
