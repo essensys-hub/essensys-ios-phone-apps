@@ -24,9 +24,9 @@ struct ComfortModes: Equatable, Sendable {
 }
 
 final class ComfortRepository: Sendable {
-    private let api: APIClient
-    private let store: SessionStore
-    private let auth: AuthRepository
+    let api: APIClient
+    let store: SessionStore
+    let auth: AuthRepository
     private let control: ControlRepository
 
     init(api: APIClient, store: SessionStore, auth: AuthRepository, control: ControlRepository) {

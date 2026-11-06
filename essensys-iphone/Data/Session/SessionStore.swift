@@ -28,6 +28,10 @@ struct SessionState: Equatable, Sendable {
     /// Vrai quand le serveur a mis fin à la session mémorisée : l'écran de connexion le dit. Non persisté.
     var sessionEnded = false
     var passwordChangeRequired = false
+    /// Administrateur de l'armoire (cloud : admin_local ou admin_global ; LAN : lan_admin). Décidé à la connexion et
+    /// relu à chaque session ; JAMAIS persisté dans le trousseau : une session restaurée n'est pas admin avant la
+    /// première relecture du rôle. Masque seulement l'interface : la protection est celle du serveur.
+    var isAdmin = false
     var theme: ThemePreference = .system
     var testMode = false
     /// Certificat de la gateway LAN (DER) confirmé par l'utilisateur (design D4).
@@ -37,6 +41,19 @@ struct SessionState: Equatable, Sendable {
 
     var baseURL: String { mode == .cloud ? cloudHost : lanHost }
     var isAuthenticated: Bool { mode == .cloud ? token != nil : lanCookie != nil }
+}
+
+/// Règle administrateur (spec light-timers-clients). Cloud : `admin_local`, ou `admin_global` (le serveur exige
+/// alors une armoire liée, ce que l'app impose avant d'afficher les commandes). LAN : `lan_admin`.
+/// IAM LAN désactivé côté gateway : aucune connexion ni rôle, l'app ne peut pas ouvrir de session LAN ; si le rôle
+/// est absent de la réponse, l'utilisateur est traité comme non administrateur (le serveur reste l'autorité).
+enum AdminRole {
+    static func isAdmin(role: String?, mode: ConnectionMode) -> Bool {
+        switch (mode, role) {
+        case (.cloud, "admin_local"), (.cloud, "admin_global"), (.lan, "lan_admin"): true
+        default: false
+        }
+    }
 }
 
 /// Persistance de la session ; implémentée par le Keychain en production, en mémoire dans les tests.
@@ -79,7 +96,7 @@ final class SessionStore: Sendable {
     func clearSession(ended: Bool? = nil) {
         update {
             $0.token = nil; $0.lanCookie = nil; $0.rememberToken = nil; $0.rememberExpiresAt = nil
-            $0.passwordChangeRequired = false
+            $0.passwordChangeRequired = false; $0.isAdmin = false
             if let ended { $0.sessionEnded = ended }
         }
     }

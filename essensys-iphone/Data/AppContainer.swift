@@ -34,7 +34,7 @@ final class AppContainer: Sendable {
         api = APIClient(store: store, guardNoArmoire: guardNoArmoire, protocolClasses: protocolClasses, log: appLog, now: now)
         auth = AuthRepository(api: api, store: store)
         control = ControlRepository(api: api, store: store, auth: auth)
-        portal = PortalRepository(api: api, auth: auth)
+        portal = PortalRepository(api: api, auth: auth, store: store)
         heating = HeatingRepository(api: api, store: store, auth: auth, control: control, syncPoll: syncPoll, syncTimeout: syncTimeout)
         scenarios = ScenarioRepository(api: api, store: store, auth: auth)
         comfort = ComfortRepository(api: api, store: store, auth: auth, control: control)

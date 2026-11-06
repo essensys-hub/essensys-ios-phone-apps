@@ -13,21 +13,26 @@ struct LoginRequest: Encodable {
     enum CodingKeys: String, CodingKey { case email, password, rememberMe = "remember_me" }
 }
 
+/// Compte renvoyé à la connexion et par la session : seul `role` sert (temporisations des lumières).
+struct RoleUser: Decodable, Equatable, Sendable { let role: String? }
+
 struct CloudLoginResponse: Decodable {
     let token: String
+    let user: RoleUser?
     let passwordChangeRequired: Bool?
     let rememberToken: String?
     let rememberExpiresAt: String?
     enum CodingKeys: String, CodingKey {
-        case token, passwordChangeRequired = "password_change_required"
+        case token, user, passwordChangeRequired = "password_change_required"
         case rememberToken = "remember_token", rememberExpiresAt = "remember_expires_at"
     }
 }
 
 /// Connexion en réseau local : le cookie porte la session, le corps donne seulement la fin des 30 jours.
 struct LanLoginResponse: Decodable {
+    let user: RoleUser?
     let rememberExpiresAt: String?
-    enum CodingKeys: String, CodingKey { case rememberExpiresAt = "remember_expires_at" }
+    enum CodingKeys: String, CodingKey { case user, rememberExpiresAt = "remember_expires_at" }
 }
 
 struct RememberRefreshRequest: Encodable {
@@ -134,7 +139,8 @@ struct CloudUser: Decodable, Equatable, Sendable {
     let email: String?
     let firstName: String?
     let lastName: String?
-    enum CodingKeys: String, CodingKey { case email, firstName = "first_name", lastName = "last_name" }
+    let role: String?
+    enum CodingKeys: String, CodingKey { case email, firstName = "first_name", lastName = "last_name", role }
 }
 
 struct ArmoireInfo: Decodable, Equatable, Sendable {
@@ -162,7 +168,7 @@ struct LastAction: Decodable, Equatable, Sendable {
 }
 struct HistoryLatest: Decodable { let lastAction: LastAction? }
 
-struct LanUserResponse: Decodable { struct User: Decodable { let id: Int? }; let user: User? }
+struct LanUserResponse: Decodable { struct User: Decodable { let id: Int?; let role: String? }; let user: User? }
 
 /// Corps vide pour les requêtes sans contenu.
 struct EmptyBody: Encodable {}
