@@ -26,9 +26,14 @@
   "implementation": {
     "paths": [
       "essensys-iphone/Data/Auth/AuthRepository.swift",
+      "essensys-iphone/Data/Auth/RememberSession.swift",
       "essensys-iphone/Data/Session/SessionStore.swift",
       "essensys-iphone/Data/Session/KeychainPersistence.swift",
       "essensys-iphone/Data/HTTP/APIClient.swift",
+      "essensys-iphone/Data/HTTP/DTO.swift",
+      "essensys-iphone/Data/AppContainer.swift",
+      "essensys-iphone/Data/Support/SupportBundle.swift",
+      "essensys-iphone/Debug/UITestBackend.swift",
       "essensys-iphone/UI/SessionModel.swift",
       "essensys-iphone/UI/Screens/AuthScreens.swift",
       "essensys-iphone/UI/Screens/MainScreens.swift"
@@ -51,16 +56,23 @@
     "playwright": [],
     "junit": [
       "essensys-iphoneTests/AuthRepositoryTests.swift",
-      "essensys-iphoneTests/KeychainPersistenceTests.swift"
+      "essensys-iphoneTests/KeychainPersistenceTests.swift",
+      "essensys-iphoneTests/RememberSessionTests.swift",
+      "essensys-iphoneTests/SupportTests.swift",
+      "essensys-iphoneUITests/RememberMeUITests.swift"
     ],
     "coverage_must_test": [
-      "remember me is unchecked by default",
-      "session survives restart",
-      "token refresh is single flight",
-      "remember session is never extended",
-      "logout revokes remember session",
-      "bundle contains no remember token",
-      "server without remember support falls back"
+      "remember me cloud login stores the session and the server expiry",
+      "server without remember support falls back without error",
+      "orphan remember session is purged after a reinstall",
+      "expired access is renewed and the request replayed",
+      "four simultaneous requests share one renewal",
+      "refused renewal ends the session and says so",
+      "logout revokes the remembered session and clears locally",
+      "remembered session is never extended by use NR ios 22",
+      "bundle and journal hold no remember secret NR ios 23",
+      "remember me is sent shown in settings and not remembered after logout",
+      "remember me is offered in cloud and lan modes"
     ],
     "smoke_tags": [
       "@nr"
