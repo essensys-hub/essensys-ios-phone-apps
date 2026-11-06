@@ -11,6 +11,7 @@ struct EssensysRoot: View {
     @State private var heating: HeatingModel
     @State private var scenarios: ScenariosModel
     @State private var comfort: ComfortModel
+    @State private var lightTimers: LightTimersModel
     @State private var support: SupportModel
     @State private var showSupport = false
 
@@ -20,6 +21,7 @@ struct EssensysRoot: View {
         _heating = State(initialValue: HeatingModel(heating: container.heating))
         _scenarios = State(initialValue: ScenariosModel(scenarios: container.scenarios))
         _comfort = State(initialValue: ComfortModel(comfort: container.comfort))
+        _lightTimers = State(initialValue: LightTimersModel(comfort: container.comfort))
         _support = State(initialValue: SupportModel(container: container))
     }
 
@@ -40,7 +42,7 @@ struct EssensysRoot: View {
             Group {
                 switch session.link {
                 case nil: ScreenColumn { ProgressView("Chargement…") }
-                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort) { showSupport = true }
+                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort, lightTimers: lightTimers) { showSupport = true }
                 case let state?: LinkScreen(model: session, state: state)
                 }
             }
@@ -55,6 +57,7 @@ private struct MainTabs: View {
     let heating: HeatingModel
     let scenarios: ScenariosModel
     let comfort: ComfortModel
+    let lightTimers: LightTimersModel
     let openSupport: () -> Void
     @State private var destination: Destination = .home
     @State private var homePath: [Feature] = []
@@ -68,7 +71,7 @@ private struct MainTabs: View {
             header
             TabView(selection: Binding(get: { destination }, set: { destination = $0; homePath = [] })) {
                 NavigationStack(path: $homePath) {
-                    HomeScreen(scenarios: scenarios, enabled: enabled, openTab: { destination = $0 }, openFeature: { homePath.append($0) })
+                    HomeScreen(scenarios: scenarios, enabled: enabled, showLightTimers: session.session.isAdmin, openTab: { destination = $0 }, openFeature: { homePath.append($0) })
                         .toolbar(.hidden, for: .navigationBar)
                         .navigationDestination(for: Feature.self) { feature in
                             Group {
@@ -78,6 +81,7 @@ private struct MainTabs: View {
                                 case .sprinkler: SprinklerScreen(model: comfort, enabled: enabled)
                                 case .securityOutlets: SecurityOutletsScreen(model: comfort, enabled: enabled)
                                 case .alarm: AlarmScreen(model: comfort, enabled: enabled, lanMode: lan)
+                                case .lightTimers: LightTimersScreen(model: lightTimers, enabled: enabled, isAdmin: session.session.isAdmin)
                                 }
                             }
                             .navigationTitle(feature.title)
@@ -86,7 +90,7 @@ private struct MainTabs: View {
                 }
                 .tag(Destination.home)
                 .tabItem { Label(Destination.home.label, systemImage: Destination.home.icon) }
-                LightingScreen(model: control, enabled: enabled).tag(Destination.lighting)
+                LightingScreen(model: control, enabled: enabled, timers: lightTimers, isAdmin: session.session.isAdmin).tag(Destination.lighting)
                     .tabItem { Label(Destination.lighting.label, systemImage: Destination.lighting.icon) }
                 ShuttersScreen(model: control, enabled: enabled).tag(Destination.shutters)
                     .tabItem { Label(Destination.shutters.label, systemImage: Destination.shutters.icon) }

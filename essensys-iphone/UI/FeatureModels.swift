@@ -341,3 +341,70 @@ enum FeatureFlags {
     static let alarmEnabled = false
     #endif
 }
+
+// MARK: - Temporisations des lumières (spec light-timers-clients)
+
+/// Un seul modèle partagé par l'écran « Temporisations » et par les lumières concernées : même valeur partout.
+@MainActor @Observable
+final class LightTimersModel {
+    private(set) var timers: [String: LightTimerState] = [:]
+    private(set) var loaded = false
+    private(set) var sending: Set<String> = []
+    /// Lumières dont la valeur est relue après un envoi (5, 10 puis 20 s).
+    private(set) var waiting: Set<String> = []
+    private(set) var feedback: Feedback?
+    private var rechecks: [String: Task<Void, Never>] = [:]
+
+    /// Relectures : 5, 10 puis 20 s après l'envoi, comme les prises de sécurité.
+    static let recheckPauses: [Duration] = [.seconds(5), .seconds(5), .seconds(10)]
+
+    private let comfort: ComfortRepository
+    private let pauses: [Duration]
+
+    init(comfort: ComfortRepository, pauses: [Duration] = LightTimersModel.recheckPauses) {
+        self.comfort = comfort
+        self.pauses = pauses
+    }
+
+    func state(_ id: String) -> LightTimerState? { timers[id] }
+
+    func load() async { await refresh() }
+
+    /// Choix d'un raccourci ou d'une valeur déjà validée (0 = Jamais).
+    func set(_ id: String, minutes: Int) {
+        guard !sending.contains(id), let timer = IndexTable.lightTimer(id: id) else { return }
+        sending.insert(id)
+        feedback = nil
+        Task {
+            let result = await comfort.setLightTimer(id: id, minutes: minutes)
+            let label = "Temporisation \(timer.name)"
+            switch result {
+            case .success(.dryRunOK): feedback = Feedback(text: "\(label) : commande validée (test, non exécutée)", kind: .info)
+            case .success(.sent): feedback = Feedback(text: "\(label) : \(LightTimerFormat.label(minutes: minutes)) envoyé, l'armoire confirme sous ~20 s", kind: .success)
+            case let .failure(error): feedback = Feedback(text: "\(label) : \(error.userMessage)", kind: .error)
+            }
+            sending.remove(id)
+            if case .success(.sent) = result { waitFor(id, expected: minutes) }
+        }
+    }
+
+    private func waitFor(_ id: String, expected: Int) {
+        rechecks[id]?.cancel()
+        waiting.insert(id)
+        rechecks[id] = Task {
+            for pause in pauses {
+                try? await Task.sleep(for: pause)
+                if Task.isCancelled { return }
+                await refresh()
+                if timers[id]?.minutes == expected { break }
+            }
+            waiting.remove(id)
+        }
+    }
+
+    private func refresh() async {
+        guard case let .success(states) = await comfort.readLightTimers() else { return }
+        timers = Dictionary(uniqueKeysWithValues: states.map { ($0.id, $0) })
+        loaded = true
+    }
+}

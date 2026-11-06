@@ -40,6 +40,7 @@ enum Destination: String, CaseIterable, Hashable {
 /// Écrans poussés depuis l'accueil, avec retour (spec home-dashboard « Navigation »).
 enum Feature: String, CaseIterable, Hashable {
     case scenarios = "SCENARIOS", waterHeater = "WATER_HEATER", sprinkler = "SPRINKLER", securityOutlets = "SECURITY_OUTLETS", alarm = "ALARM"
+    case lightTimers = "LIGHT_TIMERS"
     var title: String {
         switch self {
         case .scenarios: "Scénarios"
@@ -47,6 +48,7 @@ enum Feature: String, CaseIterable, Hashable {
         case .sprinkler: "Arrosage"
         case .securityOutlets: "Prises de sécurité"
         case .alarm: "Alarme"
+        case .lightTimers: "Temporisations"
         }
     }
 }
@@ -59,6 +61,7 @@ private let quickScenarios = [(2, "Je sors"), (4, "Je rentre"), (5, "Je vais me 
 struct HomeScreen: View {
     let scenarios: ScenariosModel
     let enabled: Bool
+    var showLightTimers = false
     let openTab: (Destination) -> Void
     let openFeature: (Feature) -> Void
     @Environment(\.essensys) private var colors
@@ -83,6 +86,9 @@ struct HomeScreen: View {
         ]
         if FeatureFlags.alarmEnabled {
             tiles.append(Tile(id: "open-ALARM", title: "Alarme", description: "Mise en service et arrêt", icon: "shield") { openFeature(.alarm) })
+        }
+        if showLightTimers {
+            tiles.append(Tile(id: "open-LIGHT_TIMERS", title: "Temporisations", description: "Extinction automatique des lumières", icon: "timer") { openFeature(.lightTimers) })
         }
         return tiles
     }

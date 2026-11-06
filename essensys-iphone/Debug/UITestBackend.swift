@@ -4,7 +4,7 @@
 //  simulateur, aucune armoire réelle (spec ios-quality). Activé par la variable d'environnement
 //  UITEST_BACKEND=1 ; options : UITEST_LINKED, UITEST_ONLINE, UITEST_TEMP_PASSWORD, UITEST_TOKEN,
 //  UITEST_TEST_MODE, UITEST_THEME, UITEST_MODE, UITEST_INJECT_DELAY_MS, UITEST_EXCHANGE (« k=v,k=v »),
-//  UITEST_FAIL_FIRST_INJECT.
+//  UITEST_FAIL_FIRST_INJECT, UITEST_ROLE (rôle du compte simulé, par défaut admin_local / lan_admin).
 //
 
 #if DEBUG
@@ -26,10 +26,15 @@ enum UITestBackend {
             state.token = "jwt-uitest"
             if state.mode == .lan { state.lanCookie = "uitest" }
         }
+        state.isAdmin = AdminRole.isAdmin(role: role, mode: state.mode)
         state.testMode = env["UITEST_TEST_MODE"] == "1"
         state.theme = env["UITEST_THEME"].flatMap(ThemePreference.init(rawValue:)) ?? .system
         return state
     }
+
+    /// Rôle du compte simulé : renvoyé par la connexion, la session et /api/user/me.
+    static var role: String { env["UITEST_ROLE"] ?? (env["UITEST_MODE"] == "lan" ? "lan_admin" : "admin_local") }
+    private static var roleIsAdmin: Bool { AdminRole.isAdmin(role: role, mode: env["UITEST_MODE"] == "lan" ? .lan : .cloud) }
 
     private static let lock = NSLock()
     nonisolated(unsafe) private static var injections: [String] = []
@@ -71,7 +76,7 @@ enum UITestBackend {
             // Session mémorisée simulée : fin à 30 jours, comme le serveur la fixe à la saisie du mot de passe.
             let until = ISO8601DateFormatter().string(from: Date().addingTimeInterval(30 * 86_400))
             let extra = remember ? #","remember_token":"remember-uitest","remember_expires_at":"\#(until)""# : ""
-            return (200, #"{"token":"jwt-uitest","password_change_required":\#(temp)\#(extra)}"#)
+            return (200, #"{"token":"jwt-uitest","user":{"id":1,"role":"\#(role)"},"password_change_required":\#(temp)\#(extra)}"#)
         case "/api/auth/password/change":
             lock.withLock { temporaryPassword = false }
             return (200, #"{"message":"Mot de passe mis à jour."}"#)
@@ -83,7 +88,7 @@ enum UITestBackend {
         case "/api/portal/session":
             return (200, sessionJSON(gatewayOnline: online))
         case "/api/user/me":
-            return (200, #"{"user":{"id":1}}"#)
+            return (200, #"{"user":{"id":1,"role":"\#(role)"}}"#)
         case "/api/portal/health", "/health":
             return (200, #"{"status":"ok"}"#)
         case "/api/portal/history/latest":
@@ -107,7 +112,12 @@ enum UITestBackend {
         case "/api/portal/web/actions":
             lock.withLock { mutations.append("\(method) \(path) \(body)") }
             return headers["X-Essensys-Test-Mode"] == "dry-run" ? (200, testOK) : (200, #"{"status":"ok","message":"Action sent to queue"}"#)
+        case "/api/portal/lights/timers", "/api/admin/lights/timers":
+            return (200, timersReply())
         default:
+            if path.hasPrefix("/api/portal/admin/lights/timers/") || path.hasPrefix("/api/admin/lights/timers/") {
+                return setTimer(path: path, headers: headers, body: body)
+            }
             if path.range(of: "^/api/(portal/)?scenarios", options: .regularExpression) != nil {
                 return scenarios(method: method, path: path, headers: headers, body: body)
             }
@@ -128,11 +138,34 @@ enum UITestBackend {
         case "old": armoire = armoireJSON(online: false)
         default: armoire = armoireJSON(online: hasGateway && gatewayOnline)
         }
-        return #"{"user":{"id":1,"email":"demo@essensys.fr","first_name":"Camille","last_name":"Démo"},"portal_access":true\#(gateway)\#(armoire)}"#
+        return #"{"user":{"id":1,"email":"demo@essensys.fr","first_name":"Camille","last_name":"Démo","role":"\#(role)"},"portal_access":true\#(gateway)\#(armoire)}"#
     }
 
     private static func armoireJSON(online: Bool) -> String {
         #","armoire":{"id":1,"no_serie":"SC944D-0001","last_seen":"2026-10-25T08:00:00Z","online":\#(online)}"#
+    }
+
+    /// Temporisations simulées : valeur lue dans la table d'échange simulée (jamais lue = null), comme le serveur.
+    private static func timersReply() -> String {
+        let values = lock.withLock { exchange }
+        let items = IndexTable.lightTimers.map { timer -> String in
+            let minutes = values[timer.key].map { $0 } ?? "null"
+            return #"{"id":"\#(timer.id)","label":"\#(timer.name)","key":\#(timer.key),"minutes":\#(minutes)}"#
+        }
+        return #"{"timers":[\#(items.joined(separator: ","))]}"#
+    }
+
+    private static func setTimer(path: String, headers: [String: String], body: String) -> (Int, String) {
+        guard roleIsAdmin else { return (403, #"{"error":"forbidden"}"#) }
+        let id = String(path.split(separator: "/").last ?? "")
+        guard let timer = IndexTable.lightTimer(id: id) else { return (400, #"{"error":"unknown_light"}"#) }
+        guard let data = body.data(using: .utf8),
+              let minutes = (try? JSONDecoder().decode(LightTimerRequest.self, from: data))?.minutes,
+              (0...255).contains(minutes) else { return (400, #"{"error":"invalid_minutes"}"#) }
+        lock.withLock { mutations.append("PUT \(path) \(body)") }
+        if headers["X-Essensys-Test-Mode"] == "dry-run" { return (200, #"{"id":"\#(id)","minutes":\#(minutes),"status":"dry_run"}"#) }
+        lock.withLock { exchange[timer.key] = String(minutes) }
+        return (200, #"{"id":"\#(id)","minutes":\#(minutes),"status":"queued"}"#)
     }
 
     private static func exchangeReply(_ query: String?) -> String {
