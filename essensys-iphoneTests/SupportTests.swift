@@ -324,4 +324,43 @@ import Testing
             }
         }
     }
+
+    // NR: NR-ios-23 essensys-hub/essensys-ios-phone-apps#37
+    // Ni le mot de passe, ni l'accès, ni la session mémorisée ne doivent se retrouver dans le journal ni dans le bundle,
+    // même après une connexion « Se souvenir de moi » et un renouvellement de l'accès.
+    @Test func bundle_and_journal_hold_no_remember_secret_NR_ios_23() async throws {
+        let password = "mot-de-passe-NR23-fictif!"
+        let access = "jwt-NR23-acces-0123456789"
+        let renewed = "jwt-NR23-renouvele-9876543210"
+        let remember = "rem-NR23-session-abcdef0123456789"
+        let (t, c) = Self.make { $0.token = nil }
+        t.route { r in
+            let headers = ["Content-Type": "application/json", "Date": Self.httpDate()]
+            switch r.path {
+            case "/api/auth/login":
+                return MockReply(body: #"{"token":"\#(access)","remember_token":"\#(remember)","remember_expires_at":"2026-12-06T09:00:00Z"}"#, headers: headers)
+            case "/api/portal/session":
+                return r.headers["Authorization"] == "Bearer \(access)"
+                    ? MockReply(status: 401, body: "Unauthorized\n", headers: headers) : MockReply(body: #"{"user":{"email":"demo@essensys.fr"},"portal_access":true}"#, headers: headers)
+            case "/api/auth/remember/refresh": return MockReply(body: #"{"token":"\#(renewed)"}"#, headers: headers)
+            case "/api/portal/health": return MockReply(body: #"{"status":"ok"}"#, headers: headers)
+            default: return MockReply(status: 404, body: "{}", headers: headers)
+            }
+        }
+        #expect(await c.auth.login(email: "demo@essensys.fr", password: password, rememberMe: true) == .loggedIn)
+        #expect(c.store.state.rememberToken == remember)
+        guard case .success = await c.portal.session() else { Issue.record("renouvellement attendu"); return }
+        #expect(c.store.state.token == renewed)
+        let report = await c.supportDiagnostics.run()
+        let files = try unzip(try c.supportBundle.create(report).zip)
+        let journal = files["journal.jsonl"] ?? ""
+        #expect(journal.contains("POST /api/auth/login"))
+        #expect(journal.contains("POST /api/auth/remember/refresh"))
+        for (name, text) in files {
+            for secret in [password, access, renewed, remember, "remember_token", "Authorization", "Cookie"] {
+                #expect(!text.contains(secret), "\(secret) dans \(name)")
+            }
+        }
+    }
 }
+
