@@ -547,3 +547,77 @@ final class ShutterNamesModel {
         }
     }
 }
+
+// MARK: - Affichage des lumières et des volets (spec object-layout-clients)
+
+/// Disposition d'un genre (`LightLayoutModel` pour les lumières, `ShutterLayoutModel` pour les volets : même classe,
+/// `kind` différent). Un seul modèle par genre alimente les listes, les commandes de groupe, l'écran Temporisations
+/// et la carte « Temps de course » : un objet désactivé ne peut pas être commandé par un groupe.
+/// Lecture impossible ou ancien serveur (404) : catalogue complet dans l'ordre d'origine, sans message bloquant ;
+/// après une lecture réussie, une coupure passagère conserve la dernière disposition lue.
+@MainActor @Observable
+final class ObjectLayoutModel {
+    let kind: LayoutKind
+    private(set) var layout: ObjectLayout = .original
+    private(set) var loaded = false
+    private(set) var saving = false
+    private(set) var feedback: Feedback?
+
+    private let comfort: ComfortRepository
+    init(kind: LayoutKind, comfort: ComfortRepository) {
+        self.kind = kind
+        self.comfort = comfort
+    }
+
+    /// Identifiants du genre dans l'ordre effectif (désactivés compris).
+    var orderedIDs: [String] { layout.orderedIDs(catalogue: kind.catalogue) }
+    var disabledIDs: Set<String> { layout.disabledIDs(catalogue: kind.catalogue) }
+    func isDisabled(_ id: String) -> Bool { disabledIDs.contains(id) }
+
+    /// Éléments actifs dans l'ordre global (les groupes filtrent ensuite : un objet ne change jamais de groupe).
+    func visible<T: Identifiable>(_ items: [T]) -> [T] where T.ID == String {
+        let rank = Dictionary(orderedIDs.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        let off = disabledIDs
+        return items.filter { rank[$0.id] != nil && !off.contains($0.id) }.sorted { rank[$0.id]! < rank[$1.id]! }
+    }
+
+    /// Signature de la disposition : relance les lectures qui en dépendent (temps de course).
+    var signature: String { "\(orderedIDs.joined(separator: ","))|\(disabledIDs.sorted().joined(separator: ","))" }
+
+    func load() async {
+        guard case let .success(read) = await comfort.readObjectLayout(kind) else { return }
+        layout = read
+        loaded = true
+    }
+
+    /// Réinitialise l'état (changement de compte ou de mode) : retour au catalogue complet.
+    func reset() { layout = .original; loaded = false; feedback = nil }
+
+    func clearFeedback() { feedback = nil }
+
+    /// Enregistre le brouillon en une seule écriture. - Returns: true si le serveur a accepté.
+    @discardableResult
+    func save(_ draft: ObjectLayoutDraft) async -> Bool {
+        guard !saving else { return false }
+        saving = true
+        feedback = nil
+        defer { saving = false }
+        let result = draft.isReset
+            ? await comfort.writeObjectLayout(kind, order: [], disabled: [], reset: true)
+            : await comfort.writeObjectLayout(kind, order: draft.order, disabled: draft.order.filter { draft.isDisabled($0) })
+        switch result {
+        case let .success(reply):
+            if reply.status == "dry_run" {
+                feedback = Feedback(text: "Affichage validé (test, non enregistré)", kind: .info)
+                return true
+            }
+            layout = reply.layout
+            loaded = true
+            feedback = Feedback(text: "Affichage enregistré", kind: .success)
+            return true
+        case let .failure(error):
+            feedback = Feedback(text: ObjectLayoutFormat.message(for: error, kind: kind), kind: .error)
+            return false
+        }
+    }
+}

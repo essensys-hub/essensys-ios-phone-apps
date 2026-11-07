@@ -136,7 +136,9 @@ final class LightTimersUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Armoire hors ligne"].waitForExistence(timeout: 10))
         tap(app, app.buttons["open-LIGHT_TIMERS"])
         XCTAssertTrue(app.staticTexts["timers-offline"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["timer-menu-dressing-30"].isEnabled)
-        XCTAssertFalse(app.buttons["timer-menu-dressing-apply"].isEnabled)
+        // Les lumières suivent l'ordre de la disposition (affichage-objets-2026-11-006) : le Dressing est en bas de
+        // l'écran et n'est pas dans la hiérarchie tant qu'il n'est pas visible ; on contrôle WC 1.
+        XCTAssertFalse(app.buttons["timer-menu-wc1-30"].isEnabled)
+        XCTAssertFalse(app.buttons["timer-menu-wc1-apply"].isEnabled)
     }
 }
