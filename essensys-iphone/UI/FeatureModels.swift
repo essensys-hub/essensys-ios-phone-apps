@@ -478,3 +478,72 @@ final class LightNamesModel {
         }
     }
 }
+
+// MARK: - Noms des volets et stores (spec shutter-names-clients)
+
+/// Un seul modèle partagé par les listes, la fiche et la carte « Temps de course ».
+/// Si la lecture échoue, les noms d'origine restent affichés (aucun message bloquant).
+@MainActor @Observable
+final class ShutterNamesModel {
+    private(set) var names: [String: ShutterName] = [:]
+    private(set) var loaded = false
+    private(set) var sending: Set<String> = []
+    private(set) var feedback: Feedback?
+
+    private let comfort: ComfortRepository
+    init(comfort: ComfortRepository) { self.comfort = comfort }
+
+    /// Nom à afficher pour un volet du catalogue : nom personnalisé, sinon nom d'origine.
+    func displayName(_ shutter: IndexTable.Shutter) -> String { names[shutter.id]?.displayName ?? shutter.name }
+
+    func displayName(id: String) -> String {
+        if let known = names[id] { return known.displayName }
+        return IndexTable.shutters.first { $0.id == id }?.name ?? id
+    }
+
+    /// Nom personnalisé courant (nil : aucun).
+    func customName(_ id: String) -> String? { names[id]?.name }
+
+    func load() async {
+        guard case let .success(list) = await comfort.readShutterNames() else { return }
+        names = Dictionary(list.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+        loaded = true
+    }
+
+    /// Réinitialise l'état (changement de compte ou de mode) : retour aux noms d'origine.
+    func reset() { names = [:]; loaded = false; feedback = nil }
+
+    /// Enregistre un nom (validé avant l'envoi). - Returns: true si le serveur a accepté.
+    @discardableResult
+    func rename(_ id: String, to text: String) async -> Bool {
+        guard ShutterNameFormat.validate(text) != nil else {
+            feedback = Feedback(text: ShutterNameFormat.invalidMessage, kind: .error)
+            return false
+        }
+        return await write(id, name: text)
+    }
+
+    /// « Nom d'origine » : `name` remis à null.
+    @discardableResult
+    func restoreDefault(_ id: String) async -> Bool { await write(id, name: nil) }
+
+    private func write(_ id: String, name: String?) async -> Bool {
+        guard !sending.contains(id) else { return false }
+        sending.insert(id)
+        feedback = nil
+        defer { sending.remove(id) }
+        switch await comfort.setShutterName(id: id, name: name) {
+        case let .success(reply):
+            if reply.status == "dry_run" {
+                feedback = Feedback(text: "Nom validé (test, non enregistré)", kind: .info)
+                return true
+            }
+            names[id] = reply.shutter
+            feedback = Feedback(text: "Nom enregistré : \(reply.shutter.displayName)", kind: .success)
+            return true
+        case let .failure(error):
+            feedback = Feedback(text: ShutterNameFormat.message(for: error), kind: .error)
+            return false
+        }
+    }
+}

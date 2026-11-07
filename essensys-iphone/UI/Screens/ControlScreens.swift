@@ -94,10 +94,13 @@ struct LightingScreen: View {
 struct ShuttersScreen: View {
     let model: ControlModel
     let enabled: Bool
+    var names: ShutterNamesModel?
+    var isAdmin = false
 
     var body: some View {
         ScreenColumn {
             FeedbackBanner(feedback: model.feedback)
+            if isAdmin, let names { FeedbackBanner(feedback: names.feedback) }
             ForEach([(IndexTable.Group.main, "Volets", "Volets roulants"),
                      (.special, "Volet Store et Store banne", "Éléments spéciaux")], id: \.1) { group, title, description in
                 let items = IndexTable.shutters.filter { $0.group == group }
@@ -106,21 +109,25 @@ struct ShuttersScreen: View {
                         model.send(key: "group-\(group)-\(open)", label: open ? "Tout ouvrir" : "Tout fermer", injections: items.map { $0.command(open: open) })
                     }
                     ForEach(items) { shutter in
+                        let shown = names?.displayName(shutter) ?? shutter.name
                         CommandRow(
-                            name: shutter.name,
+                            name: shown,
                             detail: model.travelTimes[shutter.travelTimeIndex].map { "Temps de course : \($0) s" },
                             tag: "shutter-\(shutter.id)",
                             primary: ("Ouvrir", model.inFlight.contains("\(shutter.id)-open"), {
-                                model.send(key: "\(shutter.id)-open", label: shutter.name, injections: [shutter.command(open: true)])
+                                model.send(key: "\(shutter.id)-open", label: shown, injections: [shutter.command(open: true)])
                             }),
                             secondary: ("Fermer", model.inFlight.contains("\(shutter.id)-close"), {
-                                model.send(key: "\(shutter.id)-close", label: shutter.name, injections: [shutter.command(open: false)])
+                                model.send(key: "\(shutter.id)-close", label: shown, injections: [shutter.command(open: false)])
                             }),
                             enabled: enabled)
+                        if isAdmin, let names {
+                            ShutterNameDisclosure(id: shutter.id, defaultName: shutter.name, names: names, enabled: enabled)
+                        }
                     }
                 }
             }
-            TravelTimeCard(model: model, enabled: enabled)
+            TravelTimeCard(model: model, names: names, enabled: enabled)
         }
         .task { await model.loadTravelTimes() }
     }
@@ -129,6 +136,7 @@ struct ShuttersScreen: View {
 /// Réglage du temps de course, comme la carte « Temps de course » du portail (spec shutter-travel-time).
 private struct TravelTimeCard: View {
     let model: ControlModel
+    var names: ShutterNamesModel?
     let enabled: Bool
     @State private var edited: [String: String] = [:]
     @Environment(\.essensys) private var colors
@@ -138,7 +146,9 @@ private struct TravelTimeCard: View {
             ForEach(IndexTable.shutters) { shutter in
                 HStack(spacing: 8) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(shutter.name).font(.subheadline).foregroundStyle(colors.text)
+                        Text(names?.displayName(shutter) ?? shutter.name).font(.subheadline).foregroundStyle(colors.text)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("time-name-\(shutter.id)")
                         Text(model.travelTimes[shutter.travelTimeIndex].map { "Actuel : \($0) s" } ?? "Non transmis (défaut usine : 120 s, store : 255 s)")
                             .font(.caption).foregroundStyle(colors.textMuted)
                             .accessibilityIdentifier("time-current-\(shutter.id)")
@@ -153,7 +163,7 @@ private struct TravelTimeCard: View {
                         .accessibilityIdentifier("time-input-\(shutter.id)")
                     ActionButton(label: "OK", loading: model.inFlight.contains("time-\(shutter.id)"),
                                  enabled: enabled && !(edited[shutter.id] ?? "").isEmpty, compact: true) {
-                        if model.saveTravelTime(shutter, raw: edited[shutter.id] ?? "") { edited[shutter.id] = nil }
+                        if model.saveTravelTime(shutter, raw: edited[shutter.id] ?? "", name: names?.displayName(shutter)) { edited[shutter.id] = nil }
                     }
                     .accessibilityIdentifier("time-save-\(shutter.id)")
                 }

@@ -6,7 +6,7 @@
 //  UITEST_TEST_MODE, UITEST_THEME, UITEST_MODE, UITEST_INJECT_DELAY_MS, UITEST_EXCHANGE (« k=v,k=v »),
 //  UITEST_FAIL_FIRST_INJECT, UITEST_ROLE (rôle du compte simulé, par défaut admin_local / lan_admin),
 //  UITEST_LIGHT_NAMES (« id=Nom;id=Nom » : noms personnalisés au départ), UITEST_NAMES_READ_FAIL=1 (lecture des noms en 503),
-//  UITEST_NAMES_WRITE=400|403|503 (écriture refusée avec ce code).
+//  UITEST_NAMES_WRITE=400|403|503 (écriture refusée avec ce code), UITEST_SHUTTER_NAMES (« id=Nom;id=Nom », volets).
 //
 
 #if DEBUG
@@ -54,6 +54,15 @@ enum UITestBackend {
     nonisolated(unsafe) private static var lightNames: [String: (name: String?, version: Int)] = {
         var values: [String: (name: String?, version: Int)] = [:]
         for pair in (env["UITEST_LIGHT_NAMES"] ?? "").split(separator: ";") {
+            let parts = pair.split(separator: "=", maxSplits: 1)
+            if parts.count == 2 { values[String(parts[0])] = (String(parts[1]), 1) }
+        }
+        return values
+    }()
+    /// Noms personnalisés des volets (id → nom, version).
+    nonisolated(unsafe) private static var shutterNames: [String: (name: String?, version: Int)] = {
+        var values: [String: (name: String?, version: Int)] = [:]
+        for pair in (env["UITEST_SHUTTER_NAMES"] ?? "").split(separator: ";") {
             let parts = pair.split(separator: "=", maxSplits: 1)
             if parts.count == 2 { values[String(parts[0])] = (String(parts[1]), 1) }
         }
@@ -128,7 +137,13 @@ enum UITestBackend {
         case "/api/portal/lights/names", "/api/lights/names":
             if env["UITEST_NAMES_READ_FAIL"] == "1" { return (503, #"{"error":"names_unavailable"}"#) }
             return (200, namesReply())
+        case "/api/portal/shutters/names", "/api/shutters/names":
+            if env["UITEST_NAMES_READ_FAIL"] == "1" { return (503, #"{"error":"names_unavailable"}"#) }
+            return (200, shutterNamesReply())
         default:
+            if path.hasPrefix("/api/portal/admin/shutters/names/") || path.hasPrefix("/api/admin/shutters/names/") {
+                return setShutterName(path: path, headers: headers, body: body)
+            }
             if path.hasPrefix("/api/portal/admin/lights/names/") || path.hasPrefix("/api/admin/lights/names/") {
                 return setName(path: path, headers: headers, body: body)
             }
@@ -207,6 +222,44 @@ enum UITestBackend {
             lock.withLock { lightNames[id] = (name, (lightNames[id]?.version ?? 0) + 1) }
         }
         return (200, nameJSON(light) + #","status":"\#(dry ? "dry_run" : "saved")"}"#)
+    }
+
+    private static func shutterNameJSON(_ shutter: IndexTable.Shutter) -> String {
+        let entry = lock.withLock { shutterNames[shutter.id] }
+        let name = entry?.name.map { "\"\($0.replacingOccurrences(of: "\"", with: "\\\""))\"" } ?? "null"
+        let updated = entry.map { _ in #""2026-11-07T10:15:30.123Z""# } ?? "null"
+        let escaped = shutter.name.replacingOccurrences(of: "\"", with: "\\\"")
+        return #"{"id":"\#(shutter.id)","default":"\#(escaped)","name":\#(name),"version":\#(entry?.version ?? 0),"updated_at":\#(updated)"#
+    }
+
+    private static func shutterNamesReply() -> String {
+        #"{"shutters":[\#(IndexTable.shutters.map { shutterNameJSON($0) + "}" }.joined(separator: ","))]}"#
+    }
+
+    /// PUT …/shutters/names/{id} : droits, validation (règle du nom) et mode essai à blanc comme le serveur.
+    private static func setShutterName(path: String, headers: [String: String], body: String) -> (Int, String) {
+        guard roleIsAdmin else { return (403, #"{"error":"forbidden"}"#) }
+        if let code = env["UITEST_NAMES_WRITE"].flatMap(Int.init) {
+            let error = code == 503 ? "names_unavailable" : code == 403 ? "forbidden" : "invalid_name"
+            return (code, #"{"error":"\#(error)"}"#)
+        }
+        let id = String(path.split(separator: "/").last ?? "")
+        guard let shutter = IndexTable.shutters.first(where: { $0.id == id }) else { return (400, #"{"error":"unknown_shutter"}"#) }
+        guard let data = body.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any], object.keys.contains("name") else {
+            return (400, #"{"error":"invalid_name"}"#)
+        }
+        var name: String?
+        if let text = object["name"] as? String {
+            guard let valid = ShutterNameFormat.validate(text) else { return (400, #"{"error":"invalid_name"}"#) }
+            name = valid
+        }
+        lock.withLock { mutations.append("PUT \(path) \(body)") }
+        let dry = headers["X-Essensys-Test-Mode"] == "dry-run"
+        if !dry {
+            lock.withLock { shutterNames[id] = (name, (shutterNames[id]?.version ?? 0) + 1) }
+        }
+        return (200, shutterNameJSON(shutter) + #","status":"\#(dry ? "dry_run" : "saved")"}"#)
     }
 
     private static func setTimer(path: String, headers: [String: String], body: String) -> (Int, String) {

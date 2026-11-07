@@ -43,10 +43,11 @@ final class ControlModel {
     /// unique ; la valeur affichée devient celle envoyée si le serveur l'accepte.
     /// - Returns: false si la saisie est refusée ou la commande déjà en vol.
     @discardableResult
-    func saveTravelTime(_ shutter: IndexTable.Shutter, raw: String) -> Bool {
+    func saveTravelTime(_ shutter: IndexTable.Shutter, raw: String, name: String? = nil) -> Bool {
+        let shown = name ?? shutter.name
         guard let seconds = Int(raw.trimmingCharacters(in: .whitespaces)),
               let command = shutter.travelTimeCommand(seconds: seconds) else {
-            feedback = Feedback(text: "\(shutter.name) : entre 1 et 255 secondes", kind: .error)
+            feedback = Feedback(text: "\(shown) : entre 1 et 255 secondes", kind: .error)
             return false
         }
         let key = "time-\(shutter.id)"
@@ -57,12 +58,12 @@ final class ControlModel {
             switch await control.inject(command) {
             case .success(.dryRunOK):
                 travelTimes[command.k] = command.v
-                feedback = Feedback(text: "\(shutter.name) : temps de course validé (test, non exécuté)", kind: .info)
+                feedback = Feedback(text: "\(shown) : temps de course validé (test, non exécuté)", kind: .info)
             case .success(.sent):
                 travelTimes[command.k] = command.v
-                feedback = Feedback(text: "\(shutter.name) : temps de course réglé à \(command.v) s", kind: .success)
+                feedback = Feedback(text: "\(shown) : temps de course réglé à \(command.v) s", kind: .success)
             case let .failure(error):
-                feedback = Feedback(text: "\(shutter.name) : \(error.userMessage)", kind: .error)
+                feedback = Feedback(text: "\(shown) : \(error.userMessage)", kind: .error)
             }
             inFlight.remove(key)
         }

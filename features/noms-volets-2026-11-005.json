@@ -1,0 +1,96 @@
+{
+  "$schema": "./schema/feature.schema.json",
+  "id": "noms-volets-2026-11-005",
+  "title": "Renommer les volets et stores et afficher leur nom depuis l'app iPhone",
+  "status": "proposed",
+  "owner": "nrineau",
+  "github": {
+    "issue": "essensys-hub/essensys-feature-lifecycle#52",
+    "project_item": null
+  },
+  "git": {
+    "branch": "feat/noms-volets-2026-11-005",
+    "pr_url": null
+  },
+  "openspec": {
+    "change_id": "noms-volets-2026-11-005",
+    "path": "openspec/changes/noms-volets-2026-11-005",
+    "proposal": "openspec/changes/noms-volets-2026-11-005/proposal.md",
+    "design": "../essensys-feature-lifecycle/openspec/changes/noms-volets-2026-11-005/design.md",
+    "tasks": "openspec/changes/noms-volets-2026-11-005/tasks.md",
+    "specs": [
+      "openspec/changes/noms-volets-2026-11-005/specs/shutter-names-clients/spec.md"
+    ]
+  },
+  "implementation": {
+    "paths": [
+      "essensys-iphone/Data/Control/ShutterNames.swift",
+      "essensys-iphone/Debug/UITestBackend.swift",
+      "essensys-iphone/UI/FeatureModels.swift",
+      "essensys-iphone/UI/ControlModel.swift",
+      "essensys-iphone/UI/EssensysRoot.swift",
+      "essensys-iphone/UI/Screens/ShutterNameDisclosure.swift",
+      "essensys-iphone/UI/Screens/ControlScreens.swift"
+    ],
+    "primary_surface": "ios"
+  },
+  "userguide": {
+    "pages": [
+      "README.md"
+    ],
+    "language": "fr",
+    "i18n_keys": [],
+    "screenshots": []
+  },
+  "tests": {
+    "playwright": [],
+    "junit": [
+      "essensys-iphoneTests/ShutterNamesTests.swift",
+      "essensys-iphoneUITests/ShutterNamesUITests.swift"
+    ],
+    "coverage_must_test": [
+      "names are read from the cloud route",
+      "names are read from the local route in lan mode",
+      "names are plain text and kept as is",
+      "read failure falls back to the default names",
+      "name rule is trimmed 1 to 40 without controls or angle brackets",
+      "rename is a put on the admin cloud path",
+      "rename is a put on the admin local path in lan mode",
+      "original name sends an explicit null",
+      "invalid names never reach the network",
+      "error messages for 400 403 503 are clear",
+      "travel time messages use the display name",
+      "rename never orders the armoire and keeps light names NR ios 26"
+    ],
+    "smoke_tags": [
+      "@nr"
+    ]
+  },
+  "release": {
+    "changelog_entry": "iPhone : noms personnalisés des volets et stores, modifiables par l'administrateur de l'armoire (#47).",
+    "target_tag": null,
+    "surfaces": [
+      "ios"
+    ],
+    "paths": []
+  },
+  "security": {
+    "sca_tool": "dependabot+trivy",
+    "dependabot_alerts_url": "https://github.com/essensys-hub/essensys-ios-phone-apps/security/dependabot",
+    "last_scan_at": null,
+    "cve_findings": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "secret_scan": {
+      "status": "warning",
+      "tool": "gitleaks",
+      "last_scan_at": null
+    },
+    "muted_findings": [],
+    "threat_model_url": null,
+    "owner_security": "rhinosys"
+  }
+}
