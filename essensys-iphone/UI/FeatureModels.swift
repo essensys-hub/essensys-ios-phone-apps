@@ -581,6 +581,17 @@ final class ObjectLayoutModel {
         return items.filter { rank[$0.id] != nil && !off.contains($0.id) }.sorted { rank[$0.id]! < rank[$1.id]! }
     }
 
+    /// Vrai si l'ordre effectif est celui du catalogue d'origine (désactiver seul ne le change pas).
+    var isCatalogueOrder: Bool { orderedIDs == kind.catalogue }
+
+    /// Écran sans groupes (Temporisations) : tant que l'ordre des lumières n'est pas personnalisé, il garde son ordre
+    /// propre (celui de `items`) ; sinon il suit l'ordre global. Les objets désactivés sont toujours retirés.
+    func visibleKeepingOwnOrder<T: Identifiable>(_ items: [T]) -> [T] where T.ID == String {
+        guard isCatalogueOrder else { return visible(items) }
+        let off = disabledIDs
+        return items.filter { !off.contains($0.id) }
+    }
+
     /// Signature de la disposition : relance les lectures qui en dépendent (temps de course).
     var signature: String { "\(orderedIDs.joined(separator: ","))|\(disabledIDs.sorted().joined(separator: ","))" }
 

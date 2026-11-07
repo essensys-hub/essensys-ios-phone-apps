@@ -133,17 +133,45 @@ import Testing
         #expect(model.visible(IndexTable.lights).filter { $0.group == .indirect }.count == 12)
     }
 
-    @Test func light_timers_follow_the_global_order_and_skip_disabled_lights() async {
+    private func timers(_ json: String) async -> [String] {
         let t = TestBackend(token: "jwt")
-        t.enqueue(200, #"{"order":["ann2","wc1"],"disabled":["wc2"],"version":1,"updated_at":"2026-11-07T10:15:30.123Z"}"#)
+        t.enqueue(200, json)
         let model = ObjectLayoutModel(kind: .lights, comfort: t.container.comfort)
         await model.load()
-        let timers = model.visible(IndexTable.lightTimers)
-        #expect(!timers.contains { $0.id == "wc2" })
-        #expect(timers.count == 5)
-        // `ann2` précède `wc1` ; les autres suivent l'ordre du catalogue des lumières (pieceserv, ann1, dressing...).
-        #expect(timers.first?.id == "ann2")
-        #expect(timers.map(\.id).firstIndex(of: "ann2")! < timers.map(\.id).firstIndex(of: "wc1")!)
+        return model.visibleKeepingOwnOrder(IndexTable.lightTimers).map(\.id)
+    }
+
+    private static let ownOrder = ["dressing", "wc1", "wc2", "pieceserv", "ann1", "ann2"]
+
+    @Test func timers_keep_their_own_order_by_default() async {
+        #expect(await timers(Self.defaultDoc) == Self.ownOrder)
+    }
+
+    @Test func disabling_alone_does_not_change_the_timers_order_even_with_a_complete_order() async {
+        let complete = IndexTable.lights.map { "\"\($0.id)\"" }.joined(separator: ",")
+        let result = await timers(#"{"order":[\#(complete)],"disabled":["wc2"],"version":2,"updated_at":"2026-11-07T10:15:30.123Z"}"#)
+        #expect(result == Self.ownOrder.filter { $0 != "wc2" })
+    }
+
+    @Test func reordering_makes_timers_follow_the_global_order_and_skip_disabled() async {
+        let result = await timers(#"{"order":["ann2","wc1"],"disabled":["wc2"],"version":1,"updated_at":"2026-11-07T10:15:30.123Z"}"#)
+        #expect(!result.contains("wc2"))
+        #expect(result.count == 5)
+        #expect(result.first == "ann2")
+        #expect(result.firstIndex(of: "ann2")! < result.firstIndex(of: "wc1")!)
+    }
+
+    @Test func reset_returns_the_timers_to_their_own_order() async {
+        let t = TestBackend(token: "jwt")
+        t.enqueue(200, #"{"order":["ann2"],"disabled":[],"version":1,"updated_at":"2026-11-07T10:15:30.123Z"}"#)
+        t.enqueue(200, #"{"order":[],"disabled":[],"version":2,"updated_at":"2026-11-07T10:16:00.000Z","status":"saved"}"#)
+        let model = ObjectLayoutModel(kind: .lights, comfort: t.container.comfort)
+        await model.load()
+        #expect(model.visibleKeepingOwnOrder(IndexTable.lightTimers).first?.id == "ann2")
+        var draft = ObjectLayoutDraft(kind: .lights, layout: model.layout)
+        draft.resetToOrigin()
+        _ = await model.save(draft)
+        #expect(model.visibleKeepingOwnOrder(IndexTable.lightTimers).map(\.id) == Self.ownOrder)
     }
 
     @Test func custom_names_and_timers_are_untouched_by_the_layout() async {

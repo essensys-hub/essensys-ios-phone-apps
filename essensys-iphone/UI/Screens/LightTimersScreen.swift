@@ -16,8 +16,8 @@ struct LightTimersScreen: View {
     @Environment(\.essensys) private var colors
 
     var body: some View {
-        // Lumières désactivées absentes, ordre global de la disposition (écran sans groupes).
-        let timers = layout?.visible(IndexTable.lightTimers) ?? IndexTable.lightTimers
+        // Lumières désactivées absentes, ordre propre tant que l'ordre des lumières n'est pas personnalisé, sinon ordre global.
+        let timers = layout?.visibleKeepingOwnOrder(IndexTable.lightTimers) ?? IndexTable.lightTimers
         ScreenColumn {
             FeedbackBanner(feedback: model.feedback)
             if !isAdmin {
