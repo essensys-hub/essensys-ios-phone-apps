@@ -9,6 +9,7 @@ import SwiftUI
 /// Menu central : les six lumières avec leur délai courant. Masqué (tuile absente) si !isAdmin.
 struct LightTimersScreen: View {
     let model: LightTimersModel
+    var names: LightNamesModel?
     let enabled: Bool
     let isAdmin: Bool
     @Environment(\.essensys) private var colors
@@ -29,8 +30,9 @@ struct LightTimersScreen: View {
                     }
                     ForEach(IndexTable.lightTimers) { timer in
                         VStack(alignment: .leading, spacing: 8) {
-                            LightTimerHeader(id: timer.id, name: timer.name, model: model, context: "menu")
-                            LightTimerControl(id: timer.id, model: model, enabled: enabled, context: "menu")
+                            let shown = names?.displayName(id: timer.id) ?? timer.name
+                            LightTimerHeader(id: timer.id, name: shown, model: model, context: "menu")
+                            LightTimerControl(id: timer.id, name: shown, model: model, enabled: enabled, context: "menu")
                         }
                         .padding(.vertical, 4)
                     }
@@ -65,6 +67,7 @@ private struct LightTimerHeader: View {
 /// Ligne repliable sous une lumière : « Temporisation : 15 min » puis le même réglage.
 struct LightTimerDisclosure: View {
     let id: String
+    var name: String?
     let model: LightTimersModel
     let enabled: Bool
     @State private var expanded = false
@@ -88,7 +91,7 @@ struct LightTimerDisclosure: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("light-\(id)-timer-toggle")
             if expanded {
-                LightTimerControl(id: id, model: model, enabled: enabled, context: "light")
+                LightTimerControl(id: id, name: name, model: model, enabled: enabled, context: "light")
             }
         }
     }
@@ -97,6 +100,7 @@ struct LightTimerDisclosure: View {
 /// Raccourcis 15 min, 30 min, 1 h, Jamais, plus une valeur libre de 1 à 255 minutes (refusée avant l'envoi sinon).
 struct LightTimerControl: View {
     let id: String
+    var name: String?
     let model: LightTimersModel
     let enabled: Bool
     let context: String
@@ -113,7 +117,7 @@ struct LightTimerControl: View {
                     ActionButton(label: shortcut.label, tone: current == shortcut.minutes ? .primary : .secondary,
                                  loading: false, enabled: idle, compact: true) {
                         error = nil
-                        model.set(id, minutes: shortcut.minutes)
+                        model.set(id, minutes: shortcut.minutes, name: name)
                     }
                     .accessibilityIdentifier("timer-\(context)-\(id)-\(shortcut.minutes)")
                 }
@@ -131,13 +135,75 @@ struct LightTimerControl: View {
                     }
                     error = nil
                     text = ""
-                    model.set(id, minutes: minutes)
+                    model.set(id, minutes: minutes, name: name)
                 }
                 .accessibilityIdentifier("timer-\(context)-\(id)-apply")
             }
             if let error {
                 Text(error).font(.caption).foregroundStyle(colors.danger)
                     .accessibilityIdentifier("timer-\(context)-\(id)-error")
+            }
+        }
+    }
+}
+
+/// Fiche de la lumière, réservée à l'administrateur : champ « Nom » (1 à 40 caractères, validé avant l'envoi),
+/// « Enregistrer » et « Nom d'origine ». Le nom est du texte brut ; aucun ordre n'est envoyé à l'armoire.
+struct LightNameDisclosure: View {
+    let id: String
+    let defaultName: String
+    let names: LightNamesModel
+    let enabled: Bool
+    @State private var expanded = false
+    @State private var text = ""
+    @State private var error: String?
+    @Environment(\.essensys) private var colors
+
+    var body: some View {
+        let busy = names.sending.contains(id)
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                if !expanded { text = names.customName(id) ?? "" }
+                expanded.toggle()
+            } label: {
+                HStack {
+                    Image(systemName: "pencil").foregroundStyle(colors.primary)
+                    Text("Nom : \(names.displayName(id: id))").font(.caption).foregroundStyle(colors.text)
+                    Spacer()
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down").font(.caption).foregroundStyle(colors.textMuted)
+                }
+                .frame(minHeight: 36)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("light-\(id)-name-toggle")
+            if expanded {
+                TextField("Nom (1 à 40 caractères)", text: $text, prompt: Text(defaultName))
+                    .autocorrectionDisabled()
+                    .padding(8)
+                    .overlay(RoundedRectangle(cornerRadius: Radius.button).stroke(colors.border))
+                    .accessibilityIdentifier("light-\(id)-name-field")
+                HStack(spacing: 8) {
+                    ActionButton(label: "Enregistrer", loading: busy, enabled: enabled && !busy, compact: true) {
+                        guard LightNameFormat.validate(text) != nil else {
+                            error = LightNameFormat.invalidMessage
+                            return
+                        }
+                        error = nil
+                        Task { _ = await names.rename(id, to: text) }
+                    }
+                    .accessibilityIdentifier("light-\(id)-name-save")
+                    ActionButton(label: "Nom d'origine", tone: .secondary, loading: false, enabled: enabled && !busy, compact: true) {
+                        error = nil
+                        text = ""
+                        Task { _ = await names.restoreDefault(id) }
+                    }
+                    .accessibilityIdentifier("light-\(id)-name-reset")
+                }
+                if let error {
+                    Text(error).font(.caption).foregroundStyle(colors.danger)
+                        .accessibilityIdentifier("light-\(id)-name-error")
+                }
             }
         }
     }

@@ -371,13 +371,14 @@ final class LightTimersModel {
     func load() async { await refresh() }
 
     /// Choix d'un raccourci ou d'une valeur déjà validée (0 = Jamais).
-    func set(_ id: String, minutes: Int) {
+    /// `name` : nom affiché de la lumière (nom personnalisé), à défaut le nom d'origine.
+    func set(_ id: String, minutes: Int, name: String? = nil) {
         guard !sending.contains(id), let timer = IndexTable.lightTimer(id: id) else { return }
         sending.insert(id)
         feedback = nil
         Task {
             let result = await comfort.setLightTimer(id: id, minutes: minutes)
-            let label = "Temporisation \(timer.name)"
+            let label = "Temporisation \(name ?? timer.name)"
             switch result {
             case .success(.dryRunOK): feedback = Feedback(text: "\(label) : commande validée (test, non exécutée)", kind: .info)
             case .success(.sent): feedback = Feedback(text: "\(label) : \(LightTimerFormat.label(minutes: minutes)) envoyé, l'armoire confirme sous ~20 s", kind: .success)
@@ -406,5 +407,74 @@ final class LightTimersModel {
         guard case let .success(states) = await comfort.readLightTimers() else { return }
         timers = Dictionary(uniqueKeysWithValues: states.map { ($0.id, $0) })
         loaded = true
+    }
+}
+
+// MARK: - Noms des lumières (spec light-names-clients)
+
+/// Un seul modèle partagé par les listes, la fiche, l'écran Temporisations et l'éditeur de scénarios.
+/// Si la lecture échoue, les noms d'origine restent affichés (aucun message bloquant).
+@MainActor @Observable
+final class LightNamesModel {
+    private(set) var names: [String: LightName] = [:]
+    private(set) var loaded = false
+    private(set) var sending: Set<String> = []
+    private(set) var feedback: Feedback?
+
+    private let comfort: ComfortRepository
+    init(comfort: ComfortRepository) { self.comfort = comfort }
+
+    /// Nom à afficher pour une lumière du catalogue : nom personnalisé, sinon nom d'origine.
+    func displayName(_ light: IndexTable.Light) -> String { names[light.id]?.displayName ?? light.name }
+
+    func displayName(id: String) -> String {
+        if let known = names[id] { return known.displayName }
+        return IndexTable.lights.first { $0.id == id }?.name ?? id
+    }
+
+    /// Nom personnalisé courant (nil : aucun).
+    func customName(_ id: String) -> String? { names[id]?.name }
+
+    func load() async {
+        guard case let .success(list) = await comfort.readLightNames() else { return }
+        names = Dictionary(list.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+        loaded = true
+    }
+
+    /// Réinitialise l'état (changement de compte ou de mode) : retour aux noms d'origine.
+    func reset() { names = [:]; loaded = false; feedback = nil }
+
+    /// Enregistre un nom (validé avant l'envoi). - Returns: true si le serveur a accepté.
+    @discardableResult
+    func rename(_ id: String, to text: String) async -> Bool {
+        guard LightNameFormat.validate(text) != nil else {
+            feedback = Feedback(text: LightNameFormat.invalidMessage, kind: .error)
+            return false
+        }
+        return await write(id, name: text)
+    }
+
+    /// « Nom d'origine » : `name` remis à null.
+    @discardableResult
+    func restoreDefault(_ id: String) async -> Bool { await write(id, name: nil) }
+
+    private func write(_ id: String, name: String?) async -> Bool {
+        guard !sending.contains(id) else { return false }
+        sending.insert(id)
+        feedback = nil
+        defer { sending.remove(id) }
+        switch await comfort.setLightName(id: id, name: name) {
+        case let .success(reply):
+            if reply.status == "dry_run" {
+                feedback = Feedback(text: "Nom validé (test, non enregistré)", kind: .info)
+                return true
+            }
+            names[id] = reply.light
+            feedback = Feedback(text: "Nom enregistré : \(reply.light.displayName)", kind: .success)
+            return true
+        case let .failure(error):
+            feedback = Feedback(text: LightNameFormat.message(for: error), kind: .error)
+            return false
+        }
     }
 }
