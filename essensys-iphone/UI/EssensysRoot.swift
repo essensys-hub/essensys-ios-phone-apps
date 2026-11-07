@@ -12,6 +12,7 @@ struct EssensysRoot: View {
     @State private var scenarios: ScenariosModel
     @State private var comfort: ComfortModel
     @State private var lightTimers: LightTimersModel
+    @State private var lightNames: LightNamesModel
     @State private var support: SupportModel
     @State private var showSupport = false
 
@@ -22,6 +23,7 @@ struct EssensysRoot: View {
         _scenarios = State(initialValue: ScenariosModel(scenarios: container.scenarios))
         _comfort = State(initialValue: ComfortModel(comfort: container.comfort))
         _lightTimers = State(initialValue: LightTimersModel(comfort: container.comfort))
+        _lightNames = State(initialValue: LightNamesModel(comfort: container.comfort))
         _support = State(initialValue: SupportModel(container: container))
     }
 
@@ -42,7 +44,7 @@ struct EssensysRoot: View {
             Group {
                 switch session.link {
                 case nil: ScreenColumn { ProgressView("Chargement…") }
-                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort, lightTimers: lightTimers) { showSupport = true }
+                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort, lightTimers: lightTimers, lightNames: lightNames) { showSupport = true }
                 case let state?: LinkScreen(model: session, state: state)
                 }
             }
@@ -58,6 +60,7 @@ private struct MainTabs: View {
     let scenarios: ScenariosModel
     let comfort: ComfortModel
     let lightTimers: LightTimersModel
+    let lightNames: LightNamesModel
     let openSupport: () -> Void
     @State private var destination: Destination = .home
     @State private var homePath: [Feature] = []
@@ -76,12 +79,12 @@ private struct MainTabs: View {
                         .navigationDestination(for: Feature.self) { feature in
                             Group {
                                 switch feature {
-                                case .scenarios: ScenariosScreen(model: scenarios, enabled: enabled)
+                                case .scenarios: ScenariosScreen(model: scenarios, names: lightNames, enabled: enabled)
                                 case .waterHeater: WaterHeaterScreen(model: comfort, enabled: enabled)
                                 case .sprinkler: SprinklerScreen(model: comfort, enabled: enabled)
                                 case .securityOutlets: SecurityOutletsScreen(model: comfort, enabled: enabled)
                                 case .alarm: AlarmScreen(model: comfort, enabled: enabled, lanMode: lan)
-                                case .lightTimers: LightTimersScreen(model: lightTimers, enabled: enabled, isAdmin: session.session.isAdmin)
+                                case .lightTimers: LightTimersScreen(model: lightTimers, names: lightNames, enabled: enabled, isAdmin: session.session.isAdmin)
                                 }
                             }
                             .navigationTitle(feature.title)
@@ -90,7 +93,7 @@ private struct MainTabs: View {
                 }
                 .tag(Destination.home)
                 .tabItem { Label(Destination.home.label, systemImage: Destination.home.icon) }
-                LightingScreen(model: control, enabled: enabled, timers: lightTimers, isAdmin: session.session.isAdmin).tag(Destination.lighting)
+                LightingScreen(model: control, enabled: enabled, timers: lightTimers, names: lightNames, isAdmin: session.session.isAdmin).tag(Destination.lighting)
                     .tabItem { Label(Destination.lighting.label, systemImage: Destination.lighting.icon) }
                 ShuttersScreen(model: control, enabled: enabled).tag(Destination.shutters)
                     .tabItem { Label(Destination.shutters.label, systemImage: Destination.shutters.icon) }
@@ -101,6 +104,11 @@ private struct MainTabs: View {
             }
         }
         .background(colors.background)
+        // Noms des lumières : relus à chaque connexion et changement de mode ; repli sur les noms d'origine.
+        .task(id: "names-\(session.session.mode)") {
+            lightNames.reset()
+            await lightNames.load()
+        }
         // Rafraîchissements uniquement au premier plan (design D6) : la tâche est annulée sinon.
         .task(id: scenePhase == .active ? "active-\(session.session.mode)" : "inactive") {
             if scenePhase == .active { await session.pollWhileVisible() }

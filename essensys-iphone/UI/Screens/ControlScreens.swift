@@ -51,12 +51,14 @@ struct LightingScreen: View {
     let model: ControlModel
     let enabled: Bool
     var timers: LightTimersModel?
+    var names: LightNamesModel?
     var isAdmin = false
 
     var body: some View {
         ScreenColumn {
             FeedbackBanner(feedback: model.feedback)
             if isAdmin, let timers { FeedbackBanner(feedback: timers.feedback) }
+            if isAdmin, let names { FeedbackBanner(feedback: names.feedback) }
             ForEach([(IndexTable.Group.main, "Éclairage principal", "Plafonniers et appliques"),
                      (.indirect, "Éclairage indirect", "Ambiance, chevets, miroirs")], id: \.1) { group, title, description in
                 let lights = IndexTable.lights.filter { $0.group == group }
@@ -65,17 +67,21 @@ struct LightingScreen: View {
                         model.send(key: "group-\(group)-\(on)", label: on ? "Tout allumer" : "Tout éteindre", injections: lights.map { $0.command(on: on) })
                     }
                     ForEach(lights) { light in
+                        let shown = names?.displayName(light) ?? light.name
                         CommandRow(
-                            name: light.name, tag: "light-\(light.id)",
+                            name: shown, tag: "light-\(light.id)",
                             primary: ("Allumer", model.inFlight.contains("\(light.id)-on"), {
-                                model.send(key: "\(light.id)-on", label: light.name, injections: [light.command(on: true)])
+                                model.send(key: "\(light.id)-on", label: shown, injections: [light.command(on: true)])
                             }),
                             secondary: ("Éteindre", model.inFlight.contains("\(light.id)-off"), {
-                                model.send(key: "\(light.id)-off", label: light.name, injections: [light.command(on: false)])
+                                model.send(key: "\(light.id)-off", label: shown, injections: [light.command(on: false)])
                             }),
                             enabled: enabled)
+                        if isAdmin, let names {
+                            LightNameDisclosure(id: light.id, defaultName: light.name, names: names, enabled: enabled)
+                        }
                         if isAdmin, let timers, IndexTable.lightTimer(id: light.id) != nil {
-                            LightTimerDisclosure(id: light.id, model: timers, enabled: enabled)
+                            LightTimerDisclosure(id: light.id, name: shown, model: timers, enabled: enabled)
                         }
                     }
                 }

@@ -4,7 +4,9 @@
 //  simulateur, aucune armoire réelle (spec ios-quality). Activé par la variable d'environnement
 //  UITEST_BACKEND=1 ; options : UITEST_LINKED, UITEST_ONLINE, UITEST_TEMP_PASSWORD, UITEST_TOKEN,
 //  UITEST_TEST_MODE, UITEST_THEME, UITEST_MODE, UITEST_INJECT_DELAY_MS, UITEST_EXCHANGE (« k=v,k=v »),
-//  UITEST_FAIL_FIRST_INJECT, UITEST_ROLE (rôle du compte simulé, par défaut admin_local / lan_admin).
+//  UITEST_FAIL_FIRST_INJECT, UITEST_ROLE (rôle du compte simulé, par défaut admin_local / lan_admin),
+//  UITEST_LIGHT_NAMES (« id=Nom;id=Nom » : noms personnalisés au départ), UITEST_NAMES_READ_FAIL=1 (lecture des noms en 503),
+//  UITEST_NAMES_WRITE=400|403|503 (écriture refusée avec ce code).
 //
 
 #if DEBUG
@@ -45,6 +47,15 @@ enum UITestBackend {
         for pair in (env["UITEST_EXCHANGE"] ?? "").split(separator: ",") {
             let parts = pair.split(separator: "=")
             if parts.count == 2, let k = Int(parts[0]) { values[k] = String(parts[1]) }
+        }
+        return values
+    }()
+    /// Noms personnalisés des lumières (id → nom, version) ; la mise à jour incrémente la version.
+    nonisolated(unsafe) private static var lightNames: [String: (name: String?, version: Int)] = {
+        var values: [String: (name: String?, version: Int)] = [:]
+        for pair in (env["UITEST_LIGHT_NAMES"] ?? "").split(separator: ";") {
+            let parts = pair.split(separator: "=", maxSplits: 1)
+            if parts.count == 2 { values[String(parts[0])] = (String(parts[1]), 1) }
         }
         return values
     }()
@@ -114,7 +125,13 @@ enum UITestBackend {
             return headers["X-Essensys-Test-Mode"] == "dry-run" ? (200, testOK) : (200, #"{"status":"ok","message":"Action sent to queue"}"#)
         case "/api/portal/lights/timers", "/api/admin/lights/timers":
             return (200, timersReply())
+        case "/api/portal/lights/names", "/api/lights/names":
+            if env["UITEST_NAMES_READ_FAIL"] == "1" { return (503, #"{"error":"names_unavailable"}"#) }
+            return (200, namesReply())
         default:
+            if path.hasPrefix("/api/portal/admin/lights/names/") || path.hasPrefix("/api/admin/lights/names/") {
+                return setName(path: path, headers: headers, body: body)
+            }
             if path.hasPrefix("/api/portal/admin/lights/timers/") || path.hasPrefix("/api/admin/lights/timers/") {
                 return setTimer(path: path, headers: headers, body: body)
             }
@@ -153,6 +170,43 @@ enum UITestBackend {
             return #"{"id":"\#(timer.id)","label":"\#(timer.name)","key":\#(timer.key),"minutes":\#(minutes)}"#
         }
         return #"{"timers":[\#(items.joined(separator: ","))]}"#
+    }
+
+    private static func nameJSON(_ light: IndexTable.Light) -> String {
+        let entry = lock.withLock { lightNames[light.id] }
+        let name = entry?.name.map { "\"\($0)\"" } ?? "null"
+        let updated = entry.map { _ in #""2026-11-07T10:15:30.123Z""# } ?? "null"
+        return #"{"id":"\#(light.id)","default":"\#(light.name)","name":\#(name),"version":\#(entry?.version ?? 0),"updated_at":\#(updated)"#
+    }
+
+    private static func namesReply() -> String {
+        #"{"lights":[\#(IndexTable.lights.map { nameJSON($0) + "}" }.joined(separator: ","))]}"#
+    }
+
+    /// PUT …/lights/names/{id} : droits, validation (règle du nom) et mode essai à blanc comme le serveur.
+    private static func setName(path: String, headers: [String: String], body: String) -> (Int, String) {
+        guard roleIsAdmin else { return (403, #"{"error":"forbidden"}"#) }
+        if let code = env["UITEST_NAMES_WRITE"].flatMap(Int.init) {
+            let error = code == 503 ? "names_unavailable" : code == 403 ? "forbidden" : "invalid_name"
+            return (code, #"{"error":"\#(error)"}"#)
+        }
+        let id = String(path.split(separator: "/").last ?? "")
+        guard let light = IndexTable.lights.first(where: { $0.id == id }) else { return (400, #"{"error":"unknown_light"}"#) }
+        guard let data = body.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any], object.keys.contains("name") else {
+            return (400, #"{"error":"invalid_name"}"#)
+        }
+        var name: String?
+        if let text = object["name"] as? String {
+            guard let valid = LightNameFormat.validate(text) else { return (400, #"{"error":"invalid_name"}"#) }
+            name = valid
+        }
+        lock.withLock { mutations.append("PUT \(path) \(body)") }
+        let dry = headers["X-Essensys-Test-Mode"] == "dry-run"
+        if !dry {
+            lock.withLock { lightNames[id] = (name, (lightNames[id]?.version ?? 0) + 1) }
+        }
+        return (200, nameJSON(light) + #","status":"\#(dry ? "dry_run" : "saved")"}"#)
     }
 
     private static func setTimer(path: String, headers: [String: String], body: String) -> (Int, String) {

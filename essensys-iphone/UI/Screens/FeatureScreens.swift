@@ -8,6 +8,7 @@ import SwiftUI
 
 struct ScenariosScreen: View {
     @Bindable var model: ScenariosModel
+    var names: LightNamesModel?
     let enabled: Bool
     @Environment(\.essensys) private var colors
 
@@ -48,6 +49,12 @@ struct ScenariosScreen: View {
         }
     }
 
+    /// Le nom personnalisé d'une lumière remplace le libellé du serveur ; les volets gardent leur libellé.
+    private func bitLabel(_ field: BitmaskField, _ bit: BitmaskBit) -> String {
+        guard let names, let light = IndexTable.light(metaIndex: field.index, bitValue: bit.value) else { return bit.label }
+        return names.displayName(light)
+    }
+
     @ViewBuilder private func editorCard(_ editor: ScenarioEditor) -> some View {
         EssensysCard(title: "Éditer — \(editor.slot.label)", description: "Lumières et volets commandés par ce scénario") {
             if editor.loading {
@@ -60,7 +67,7 @@ struct ScenariosScreen: View {
                 ForEach(editor.fields, id: \.index) { field in
                     Text(field.title).font(.subheadline.weight(.semibold)).foregroundStyle(colors.text)
                     ForEach(field.bits, id: \.value) { bit in
-                        Toggle(bit.label, isOn: Binding(
+                        Toggle(bitLabel(field, bit), isOn: Binding(
                             get: { editor.definition?.isSet(metaIndex: field.index, bitValue: bit.value) == true },
                             set: { model.toggle(metaIndex: field.index, bitValue: bit.value, on: $0) }))
                             .foregroundStyle(colors.text)
