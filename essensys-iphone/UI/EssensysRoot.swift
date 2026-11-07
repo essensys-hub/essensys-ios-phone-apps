@@ -13,6 +13,7 @@ struct EssensysRoot: View {
     @State private var comfort: ComfortModel
     @State private var lightTimers: LightTimersModel
     @State private var lightNames: LightNamesModel
+    @State private var shutterNames: ShutterNamesModel
     @State private var support: SupportModel
     @State private var showSupport = false
 
@@ -24,6 +25,7 @@ struct EssensysRoot: View {
         _comfort = State(initialValue: ComfortModel(comfort: container.comfort))
         _lightTimers = State(initialValue: LightTimersModel(comfort: container.comfort))
         _lightNames = State(initialValue: LightNamesModel(comfort: container.comfort))
+        _shutterNames = State(initialValue: ShutterNamesModel(comfort: container.comfort))
         _support = State(initialValue: SupportModel(container: container))
     }
 
@@ -44,7 +46,7 @@ struct EssensysRoot: View {
             Group {
                 switch session.link {
                 case nil: ScreenColumn { ProgressView("Chargement…") }
-                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort, lightTimers: lightTimers, lightNames: lightNames) { showSupport = true }
+                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort, lightTimers: lightTimers, lightNames: lightNames, shutterNames: shutterNames) { showSupport = true }
                 case let state?: LinkScreen(model: session, state: state)
                 }
             }
@@ -61,6 +63,7 @@ private struct MainTabs: View {
     let comfort: ComfortModel
     let lightTimers: LightTimersModel
     let lightNames: LightNamesModel
+    let shutterNames: ShutterNamesModel
     let openSupport: () -> Void
     @State private var destination: Destination = .home
     @State private var homePath: [Feature] = []
@@ -95,7 +98,7 @@ private struct MainTabs: View {
                 .tabItem { Label(Destination.home.label, systemImage: Destination.home.icon) }
                 LightingScreen(model: control, enabled: enabled, timers: lightTimers, names: lightNames, isAdmin: session.session.isAdmin).tag(Destination.lighting)
                     .tabItem { Label(Destination.lighting.label, systemImage: Destination.lighting.icon) }
-                ShuttersScreen(model: control, enabled: enabled).tag(Destination.shutters)
+                ShuttersScreen(model: control, enabled: enabled, names: shutterNames, isAdmin: session.session.isAdmin).tag(Destination.shutters)
                     .tabItem { Label(Destination.shutters.label, systemImage: Destination.shutters.icon) }
                 HeatingScreen(model: heating, enabled: enabled, lanMode: lan).tag(Destination.heating)
                     .tabItem { Label(Destination.heating.label, systemImage: Destination.heating.icon) }
@@ -108,6 +111,10 @@ private struct MainTabs: View {
         .task(id: "names-\(session.session.mode)") {
             lightNames.reset()
             await lightNames.load()
+        }
+        .task(id: "shutter-names-\(session.session.mode)") {
+            shutterNames.reset()
+            await shutterNames.load()
         }
         // Rafraîchissements uniquement au premier plan (design D6) : la tâche est annulée sinon.
         .task(id: scenePhase == .active ? "active-\(session.session.mode)" : "inactive") {
