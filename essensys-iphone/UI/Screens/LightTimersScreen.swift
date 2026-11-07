@@ -10,11 +10,14 @@ import SwiftUI
 struct LightTimersScreen: View {
     let model: LightTimersModel
     var names: LightNamesModel?
+    var layout: ObjectLayoutModel?
     let enabled: Bool
     let isAdmin: Bool
     @Environment(\.essensys) private var colors
 
     var body: some View {
+        // Lumières désactivées absentes, ordre propre tant que l'ordre des lumières n'est pas personnalisé, sinon ordre global.
+        let timers = layout?.visibleKeepingOwnOrder(IndexTable.lightTimers) ?? IndexTable.lightTimers
         ScreenColumn {
             FeedbackBanner(feedback: model.feedback)
             if !isAdmin {
@@ -28,7 +31,10 @@ struct LightTimersScreen: View {
                         Text("Armoire hors ligne : réglages indisponibles.")
                             .foregroundStyle(colors.textMuted).accessibilityIdentifier("timers-offline")
                     }
-                    ForEach(IndexTable.lightTimers) { timer in
+                    if timers.isEmpty {
+                        EmptyGroupText(text: LayoutKind.lights.emptyGroupText, tag: "timers")
+                    }
+                    ForEach(timers) { timer in
                         VStack(alignment: .leading, spacing: 8) {
                             let shown = names?.displayName(id: timer.id) ?? timer.name
                             LightTimerHeader(id: timer.id, name: shown, model: model, context: "menu")

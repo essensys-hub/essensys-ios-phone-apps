@@ -6,7 +6,9 @@
 //  UITEST_TEST_MODE, UITEST_THEME, UITEST_MODE, UITEST_INJECT_DELAY_MS, UITEST_EXCHANGE (« k=v,k=v »),
 //  UITEST_FAIL_FIRST_INJECT, UITEST_ROLE (rôle du compte simulé, par défaut admin_local / lan_admin),
 //  UITEST_LIGHT_NAMES (« id=Nom;id=Nom » : noms personnalisés au départ), UITEST_NAMES_READ_FAIL=1 (lecture des noms en 503),
-//  UITEST_NAMES_WRITE=400|403|503 (écriture refusée avec ce code), UITEST_SHUTTER_NAMES (« id=Nom;id=Nom », volets).
+//  UITEST_NAMES_WRITE=400|403|503 (écriture refusée avec ce code), UITEST_SHUTTER_NAMES (« id=Nom;id=Nom », volets),
+//  UITEST_LIGHT_LAYOUT / UITEST_SHUTTER_LAYOUT (« order=a,b;disabled=c,d » : disposition au départ),
+//  UITEST_LAYOUT_READ=404|503 (lecture des dispositions refusée), UITEST_LAYOUT_WRITE=400|403|503 (écriture refusée).
 //
 
 #if DEBUG
@@ -65,6 +67,22 @@ enum UITestBackend {
         for pair in (env["UITEST_SHUTTER_NAMES"] ?? "").split(separator: ";") {
             let parts = pair.split(separator: "=", maxSplits: 1)
             if parts.count == 2 { values[String(parts[0])] = (String(parts[1]), 1) }
+        }
+        return values
+    }()
+    /// Dispositions (genre → ordre, désactivés, version) ; l'écriture remplace le document et incrémente la version.
+    nonisolated(unsafe) private static var layouts: [String: (order: [String], disabled: [String], version: Int)] = {
+        var values: [String: (order: [String], disabled: [String], version: Int)] = [:]
+        for (kind, key) in [("lights", "UITEST_LIGHT_LAYOUT"), ("shutters", "UITEST_SHUTTER_LAYOUT")] {
+            guard let raw = env[key] else { continue }
+            var order: [String] = [], disabled: [String] = []
+            for part in raw.split(separator: ";") {
+                let pair = part.split(separator: "=", maxSplits: 1)
+                guard pair.count == 2 else { continue }
+                let list = pair[1].split(separator: ",").map(String.init)
+                if pair[0] == "order" { order = list } else if pair[0] == "disabled" { disabled = list }
+            }
+            values[kind] = (order, disabled, 1)
         }
         return values
     }()
@@ -140,6 +158,14 @@ enum UITestBackend {
         case "/api/portal/shutters/names", "/api/shutters/names":
             if env["UITEST_NAMES_READ_FAIL"] == "1" { return (503, #"{"error":"names_unavailable"}"#) }
             return (200, shutterNamesReply())
+        case "/api/portal/lights/layout", "/api/lights/layout":
+            return readLayout("lights")
+        case "/api/portal/shutters/layout", "/api/shutters/layout":
+            return readLayout("shutters")
+        case "/api/portal/admin/lights/layout", "/api/admin/lights/layout":
+            return setLayout("lights", path: path, headers: headers, body: body)
+        case "/api/portal/admin/shutters/layout", "/api/admin/shutters/layout":
+            return setLayout("shutters", path: path, headers: headers, body: body)
         default:
             if path.hasPrefix("/api/portal/admin/shutters/names/") || path.hasPrefix("/api/admin/shutters/names/") {
                 return setShutterName(path: path, headers: headers, body: body)
@@ -260,6 +286,46 @@ enum UITestBackend {
             lock.withLock { shutterNames[id] = (name, (shutterNames[id]?.version ?? 0) + 1) }
         }
         return (200, shutterNameJSON(shutter) + #","status":"\#(dry ? "dry_run" : "saved")"}"#)
+    }
+
+    private static func layoutJSON(_ kind: String) -> String {
+        let entry = lock.withLock { layouts[kind] }
+        func list(_ ids: [String]) -> String { "[" + ids.map { "\"\($0)\"" }.joined(separator: ",") + "]" }
+        let updated = entry.map { _ in #""2026-11-07T10:15:30.123Z""# } ?? "null"
+        return #"{"order":\#(list(entry?.order ?? [])),"disabled":\#(list(entry?.disabled ?? [])),"version":\#(entry?.version ?? 0),"updated_at":\#(updated)"#
+    }
+
+    private static func readLayout(_ kind: String) -> (Int, String) {
+        if let code = env["UITEST_LAYOUT_READ"].flatMap(Int.init) { return (code, code == 404 ? "Not found" : #"{"error":"names_unavailable"}"#) }
+        return (200, layoutJSON(kind) + "}")
+    }
+
+    /// PUT …/layout : droits, validation (identifiants du genre, doublons) et essai à blanc comme le serveur.
+    private static func setLayout(_ kind: String, path: String, headers: [String: String], body: String) -> (Int, String) {
+        guard roleIsAdmin else { return (403, #"{"error":"forbidden"}"#) }
+        if let code = env["UITEST_LAYOUT_WRITE"].flatMap(Int.init) {
+            let error = code == 503 ? "names_unavailable" : code == 403 ? "forbidden" : "invalid_layout"
+            return (code, #"{"error":"\#(error)"}"#)
+        }
+        let catalogue = Set(kind == "lights" ? IndexTable.lights.map(\.id) : IndexTable.shutters.map(\.id))
+        guard let data = body.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return (400, #"{"error":"invalid_layout"}"#)
+        }
+        var order: [String] = [], disabled: [String] = []
+        if object["reset"] as? Bool != true {
+            guard let o = object["order"] as? [String], let d = object["disabled"] as? [String],
+                  Set(o).count == o.count, Set(d).count == d.count else { return (400, #"{"error":"invalid_layout"}"#) }
+            guard o.allSatisfy(catalogue.contains), d.allSatisfy(catalogue.contains) else {
+                return (400, #"{"error":"\#(kind == "lights" ? "unknown_light" : "unknown_shutter")"}"#)
+            }
+            order = o
+            disabled = d
+        }
+        lock.withLock { mutations.append("PUT \(path) \(body)") }
+        let dry = headers["X-Essensys-Test-Mode"] == "dry-run"
+        if !dry { lock.withLock { layouts[kind] = (order, disabled, (layouts[kind]?.version ?? 0) + 1) } }
+        return (200, layoutJSON(kind) + #","status":"\#(dry ? "dry_run" : "saved")"}"#)
     }
 
     private static func setTimer(path: String, headers: [String: String], body: String) -> (Int, String) {

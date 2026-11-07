@@ -52,6 +52,7 @@ struct LightingScreen: View {
     let enabled: Bool
     var timers: LightTimersModel?
     var names: LightNamesModel?
+    var layout: ObjectLayoutModel?
     var isAdmin = false
 
     var body: some View {
@@ -59,12 +60,21 @@ struct LightingScreen: View {
             FeedbackBanner(feedback: model.feedback)
             if isAdmin, let timers { FeedbackBanner(feedback: timers.feedback) }
             if isAdmin, let names { FeedbackBanner(feedback: names.feedback) }
+            if isAdmin, let layout {
+                FeedbackBanner(feedback: layout.feedback)
+                ObjectLayoutEntry(kind: .lights, model: layout, displayName: { names?.displayName(id: $0) ?? lightDefaultName($0) }, enabled: enabled)
+            }
             ForEach([(IndexTable.Group.main, "Éclairage principal", "Plafonniers et appliques"),
                      (.indirect, "Éclairage indirect", "Ambiance, chevets, miroirs")], id: \.1) { group, title, description in
-                let lights = IndexTable.lights.filter { $0.group == group }
+                // Une seule liste (filtrée et ordonnée) alimente les boutons de groupe et les lignes.
+                let lights = (layout?.visible(IndexTable.lights) ?? IndexTable.lights).filter { $0.group == group }
                 EssensysCard(title: title, description: description) {
-                    GroupActions(labels: ("Tout allumer", "Tout éteindre"), tag: "group-\(group)", model: model, enabled: enabled) { on in
-                        model.send(key: "group-\(group)-\(on)", label: on ? "Tout allumer" : "Tout éteindre", injections: lights.map { $0.command(on: on) })
+                    if lights.isEmpty {
+                        EmptyGroupText(text: LayoutKind.lights.emptyGroupText, tag: "group-\(group)")
+                    } else {
+                        GroupActions(labels: ("Tout allumer", "Tout éteindre"), tag: "group-\(group)", model: model, enabled: enabled) { on in
+                            model.send(key: "group-\(group)-\(on)", label: on ? "Tout allumer" : "Tout éteindre", injections: lights.map { $0.command(on: on) })
+                        }
                     }
                     ForEach(lights) { light in
                         let shown = names?.displayName(light) ?? light.name
@@ -91,22 +101,48 @@ struct LightingScreen: View {
     }
 }
 
+/// Groupe sans objet actif : ni boutons de groupe ni ligne, seulement ce texte (aucune commande vide).
+struct EmptyGroupText: View {
+    let text: String
+    let tag: String
+    @Environment(\.essensys) private var colors
+
+    var body: some View {
+        Text(text).font(.subheadline).foregroundStyle(colors.textMuted)
+            .accessibilityIdentifier("\(tag)-empty")
+    }
+}
+
+/// Nom d'origine d'une lumière du catalogue (repli quand le modèle des noms est absent).
+private func lightDefaultName(_ id: String) -> String { IndexTable.lights.first { $0.id == id }?.name ?? id }
+private func shutterDefaultName(_ id: String) -> String { IndexTable.shutters.first { $0.id == id }?.name ?? id }
+
 struct ShuttersScreen: View {
     let model: ControlModel
     let enabled: Bool
     var names: ShutterNamesModel?
+    var layout: ObjectLayoutModel?
     var isAdmin = false
 
     var body: some View {
+        let active = layout?.visible(IndexTable.shutters) ?? IndexTable.shutters
         ScreenColumn {
             FeedbackBanner(feedback: model.feedback)
             if isAdmin, let names { FeedbackBanner(feedback: names.feedback) }
+            if isAdmin, let layout {
+                FeedbackBanner(feedback: layout.feedback)
+                ObjectLayoutEntry(kind: .shutters, model: layout, displayName: { names?.displayName(id: $0) ?? shutterDefaultName($0) }, enabled: enabled)
+            }
             ForEach([(IndexTable.Group.main, "Volets", "Volets roulants"),
                      (.special, "Volet Store et Store banne", "Éléments spéciaux")], id: \.1) { group, title, description in
-                let items = IndexTable.shutters.filter { $0.group == group }
+                let items = active.filter { $0.group == group }
                 EssensysCard(title: title, description: description) {
-                    GroupActions(labels: ("Tout ouvrir", "Tout fermer"), tag: "group-\(group)", model: model, enabled: enabled) { open in
-                        model.send(key: "group-\(group)-\(open)", label: open ? "Tout ouvrir" : "Tout fermer", injections: items.map { $0.command(open: open) })
+                    if items.isEmpty {
+                        EmptyGroupText(text: LayoutKind.shutters.emptyGroupText, tag: "group-\(group)")
+                    } else {
+                        GroupActions(labels: ("Tout ouvrir", "Tout fermer"), tag: "group-\(group)", model: model, enabled: enabled) { open in
+                            model.send(key: "group-\(group)-\(open)", label: open ? "Tout ouvrir" : "Tout fermer", injections: items.map { $0.command(open: open) })
+                        }
                     }
                     ForEach(items) { shutter in
                         let shown = names?.displayName(shutter) ?? shutter.name
@@ -127,15 +163,17 @@ struct ShuttersScreen: View {
                     }
                 }
             }
-            TravelTimeCard(model: model, names: names, enabled: enabled)
+            TravelTimeCard(model: model, shutters: active, names: names, enabled: enabled)
         }
-        .task { await model.loadTravelTimes() }
+        // Relu quand la disposition change : seuls les temps des volets affichés sont lus.
+        .task(id: layout?.signature ?? "") { await model.loadTravelTimes(shutters: active) }
     }
 }
 
 /// Réglage du temps de course, comme la carte « Temps de course » du portail (spec shutter-travel-time).
 private struct TravelTimeCard: View {
     let model: ControlModel
+    let shutters: [IndexTable.Shutter]
     var names: ShutterNamesModel?
     let enabled: Bool
     @State private var edited: [String: String] = [:]
@@ -143,7 +181,10 @@ private struct TravelTimeCard: View {
 
     var body: some View {
         EssensysCard(title: "Temps de course", description: "Durée de commande du moteur, à l'ouverture et à la fermeture (1 à 255 secondes)") {
-            ForEach(IndexTable.shutters) { shutter in
+            if shutters.isEmpty {
+                EmptyGroupText(text: LayoutKind.shutters.emptyGroupText, tag: "travel-time")
+            }
+            ForEach(shutters) { shutter in
                 HStack(spacing: 8) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(names?.displayName(shutter) ?? shutter.name).font(.subheadline).foregroundStyle(colors.text)

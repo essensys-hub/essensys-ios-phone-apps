@@ -14,6 +14,8 @@ struct EssensysRoot: View {
     @State private var lightTimers: LightTimersModel
     @State private var lightNames: LightNamesModel
     @State private var shutterNames: ShutterNamesModel
+    @State private var lightLayout: ObjectLayoutModel
+    @State private var shutterLayout: ObjectLayoutModel
     @State private var support: SupportModel
     @State private var showSupport = false
 
@@ -26,6 +28,8 @@ struct EssensysRoot: View {
         _lightTimers = State(initialValue: LightTimersModel(comfort: container.comfort))
         _lightNames = State(initialValue: LightNamesModel(comfort: container.comfort))
         _shutterNames = State(initialValue: ShutterNamesModel(comfort: container.comfort))
+        _lightLayout = State(initialValue: ObjectLayoutModel(kind: .lights, comfort: container.comfort))
+        _shutterLayout = State(initialValue: ObjectLayoutModel(kind: .shutters, comfort: container.comfort))
         _support = State(initialValue: SupportModel(container: container))
     }
 
@@ -46,7 +50,7 @@ struct EssensysRoot: View {
             Group {
                 switch session.link {
                 case nil: ScreenColumn { ProgressView("Chargement…") }
-                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort, lightTimers: lightTimers, lightNames: lightNames, shutterNames: shutterNames) { showSupport = true }
+                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort, lightTimers: lightTimers, lightNames: lightNames, shutterNames: shutterNames, lightLayout: lightLayout, shutterLayout: shutterLayout) { showSupport = true }
                 case let state?: LinkScreen(model: session, state: state)
                 }
             }
@@ -64,6 +68,8 @@ private struct MainTabs: View {
     let lightTimers: LightTimersModel
     let lightNames: LightNamesModel
     let shutterNames: ShutterNamesModel
+    let lightLayout: ObjectLayoutModel
+    let shutterLayout: ObjectLayoutModel
     let openSupport: () -> Void
     @State private var destination: Destination = .home
     @State private var homePath: [Feature] = []
@@ -87,7 +93,7 @@ private struct MainTabs: View {
                                 case .sprinkler: SprinklerScreen(model: comfort, enabled: enabled)
                                 case .securityOutlets: SecurityOutletsScreen(model: comfort, enabled: enabled)
                                 case .alarm: AlarmScreen(model: comfort, enabled: enabled, lanMode: lan)
-                                case .lightTimers: LightTimersScreen(model: lightTimers, names: lightNames, enabled: enabled, isAdmin: session.session.isAdmin)
+                                case .lightTimers: LightTimersScreen(model: lightTimers, names: lightNames, layout: lightLayout, enabled: enabled, isAdmin: session.session.isAdmin)
                                 }
                             }
                             .navigationTitle(feature.title)
@@ -96,9 +102,9 @@ private struct MainTabs: View {
                 }
                 .tag(Destination.home)
                 .tabItem { Label(Destination.home.label, systemImage: Destination.home.icon) }
-                LightingScreen(model: control, enabled: enabled, timers: lightTimers, names: lightNames, isAdmin: session.session.isAdmin).tag(Destination.lighting)
+                LightingScreen(model: control, enabled: enabled, timers: lightTimers, names: lightNames, layout: lightLayout, isAdmin: session.session.isAdmin).tag(Destination.lighting)
                     .tabItem { Label(Destination.lighting.label, systemImage: Destination.lighting.icon) }
-                ShuttersScreen(model: control, enabled: enabled, names: shutterNames, isAdmin: session.session.isAdmin).tag(Destination.shutters)
+                ShuttersScreen(model: control, enabled: enabled, names: shutterNames, layout: shutterLayout, isAdmin: session.session.isAdmin).tag(Destination.shutters)
                     .tabItem { Label(Destination.shutters.label, systemImage: Destination.shutters.icon) }
                 HeatingScreen(model: heating, enabled: enabled, lanMode: lan).tag(Destination.heating)
                     .tabItem { Label(Destination.heating.label, systemImage: Destination.heating.icon) }
@@ -115,6 +121,14 @@ private struct MainTabs: View {
         .task(id: "shutter-names-\(session.session.mode)") {
             shutterNames.reset()
             await shutterNames.load()
+        }
+        // Dispositions (lumières et volets) : relues à chaque connexion et changement de mode ; repli sur le catalogue complet.
+        .task(id: "layout-\(session.session.mode)") {
+            lightLayout.reset()
+            shutterLayout.reset()
+            async let lights: Void = lightLayout.load()
+            async let shutters: Void = shutterLayout.load()
+            _ = await (lights, shutters)
         }
         // Rafraîchissements uniquement au premier plan (design D6) : la tâche est annulée sinon.
         .task(id: scenePhase == .active ? "active-\(session.session.mode)" : "inactive") {

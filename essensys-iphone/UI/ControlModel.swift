@@ -70,8 +70,10 @@ final class ControlModel {
         return true
     }
 
-    func loadTravelTimes() async {
-        if case let .success(values) = await control.readExchange(keys: IndexTable.shutters.map(\.travelTimeIndex)) {
+    /// Lit les temps de course des volets affichés (les volets désactivés ne sont pas lus).
+    func loadTravelTimes(shutters: [IndexTable.Shutter] = IndexTable.shutters) async {
+        guard !shutters.isEmpty else { return }
+        if case let .success(values) = await control.readExchange(keys: shutters.map(\.travelTimeIndex)) {
             travelTimes = values
         }
     }
