@@ -165,4 +165,32 @@ struct IndexTableTests {
         #expect(!sdb2.immediateModes.contains(.anticipated))
         #expect(sdb2.command(.anticipated) == nil)
     }
+
+    // NR: NR-ios-24 essensys-hub/essensys-ios-phone-apps#43
+    @Test func light_timer_keys_and_range_NR_ios_24() {
+        // Mêmes clés que le backend (cloud et gateway) et que les portails : Lampes_*_Temps 518/534/550 + sortie.
+        #expect(IndexTable.lightTimers.map(\.id) == ["dressing", "wc1", "wc2", "pieceserv", "ann1", "ann2"])
+        #expect(IndexTable.lightTimers.map(\.key) == [521, 555, 556, 557, 561, 562])
+        #expect(IndexTable.lightTimers.map(\.name) == ["Dressing", "WC 1", "WC 2", "Service", "Annexe 1", "Annexe 2"])
+        #expect(IndexTable.lightTimer(id: "ann2")?.key == 562)
+        #expect(IndexTable.lightTimer(id: "salon1") == nil)
+        // Les six identifiants sont ceux des lumières de l'écran Éclairage.
+        for timer in IndexTable.lightTimers { #expect(IndexTable.lights.contains { $0.id == timer.id }) }
+        // Un octet : 0 (jamais) à 255.
+        #expect(IndexTable.lightTimerRange == 0...255)
+        #expect(LightTimerFormat.parseFree("1") == 1)
+        #expect(LightTimerFormat.parseFree("255") == 255)
+        #expect(LightTimerFormat.parseFree("7") == 7)
+        for refused in ["0", "256", "300", "-5", "", " ", "abc", "1.5", "٣"] { #expect(LightTimerFormat.parseFree(refused) == nil, "\(refused)") }
+        #expect(LightTimerFormat.shortcuts.map(\.minutes) == [15, 30, 60, 0])
+    }
+
+    @Test func light_timer_display_keeps_free_values_as_is() {
+        #expect(LightTimerFormat.label(minutes: 15) == "15 min")
+        #expect(LightTimerFormat.label(minutes: 30) == "30 min")
+        #expect(LightTimerFormat.label(minutes: 60) == "1 h")
+        #expect(LightTimerFormat.label(minutes: 0) == "Jamais")
+        #expect(LightTimerFormat.label(minutes: 7) == "7 min")
+        #expect(LightTimerFormat.label(minutes: nil) == "Inconnue")
+    }
 }

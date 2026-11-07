@@ -15,10 +15,12 @@ enum LinkState: Equatable, Sendable {
 final class PortalRepository: Sendable {
     private let api: APIClient
     private let auth: AuthRepository
+    private let store: SessionStore
 
-    init(api: APIClient, auth: AuthRepository) {
+    init(api: APIClient, auth: AuthRepository, store: SessionStore) {
         self.api = api
         self.auth = auth
+        self.store = store
     }
 
     func linkState() async -> Result<LinkState, APIError> {
@@ -47,7 +49,10 @@ final class PortalRepository: Sendable {
 
     /// Session cloud : compte, gateway et armoire liée, chacune en ligne si vue depuis moins de 2 min.
     func session() async -> Result<PortalSession, APIError> {
-        await get("/api/portal/session", as: PortalSession.self) { $0 }
+        await get("/api/portal/session", as: PortalSession.self) { [store] portal in
+            Self.syncRole(portal.user?.role, mode: .cloud, store: store)
+            return portal
+        }
     }
 
     func lastAction() async -> Result<LastAction?, APIError> {
@@ -56,7 +61,17 @@ final class PortalRepository: Sendable {
 
     /// LAN : la gateway n'expose ni état ni historique ; on vérifie seulement la session.
     func lanSessionValid() async -> Result<Bool, APIError> {
-        await get("/api/user/me", as: LanUserResponse.self) { $0.user != nil }
+        await get("/api/user/me", as: LanUserResponse.self) { [store] response in
+            Self.syncRole(response.user?.role, mode: .lan, store: store)
+            return response.user != nil
+        }
+    }
+
+    /// Le rôle est relu à chaque session (jamais persisté) ; une réponse sans rôle ne change rien.
+    private static func syncRole(_ role: String?, mode: ConnectionMode, store: SessionStore) {
+        guard let role else { return }
+        let admin = AdminRole.isAdmin(role: role, mode: mode)
+        if store.state.isAdmin != admin && store.state.mode == mode { store.update { $0.isAdmin = admin } }
     }
 
     private func get<T: Decodable, R>(_ path: String, as type: T.Type, map: (T) -> R) async -> Result<R, APIError> {

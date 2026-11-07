@@ -82,4 +82,78 @@ struct ComfortRepositoryTests {
         #expect(!String(describing: AlarmRequest(alarme: "on", codealarme: "1234")).contains("1234"))
         guard case .failure(.invalidRequest) = await t.container.comfort.alarm(on: true, code: "12a4") else { Issue.record("refus attendu"); return }
     }
+
+    // MARK: Temporisations des lumières (lumieres-temporisees-2026-11-003)
+
+    private static let timersReply = #"{"timers":[{"id":"dressing","label":"Dressing","key":521,"minutes":15},{"id":"wc1","label":"WC 1","key":555,"minutes":null},{"id":"wc2","label":"WC 2","key":556,"minutes":0},{"id":"pieceserv","label":"Service","key":557,"minutes":60},{"id":"ann1","label":"Annexe 1","key":561,"minutes":null},{"id":"ann2","label":"Annexe 2","key":562,"minutes":7}]}"#
+
+    @Test func light_timers_are_read_in_cloud_with_unknown_kept_unknown() async {
+        let t = TestBackend(token: "jwt")
+        t.enqueue(200, Self.timersReply)
+        guard case let .success(timers) = await t.container.comfort.readLightTimers() else { Issue.record("succès attendu"); return }
+        #expect(t.requests.first?.method == "GET")
+        #expect(t.requests.first?.path == "/api/portal/lights/timers")
+        #expect(timers.map(\.id) == ["dressing", "wc1", "wc2", "pieceserv", "ann1", "ann2"])
+        #expect(timers.map(\.minutes) == [15, nil, 0, 60, nil, 7])
+        #expect(timers.map(\.display) == ["15 min", "Inconnue", "Jamais", "1 h", "Inconnue", "7 min"])
+        #expect(timers.first?.key == 521)
+    }
+
+    @Test func light_timers_are_read_on_admin_path_in_lan() async {
+        let t = TestBackend(mode: .lan)
+        t.store.update { $0.lanCookie = "abc" }
+        t.enqueue(200, Self.timersReply)
+        _ = await t.container.comfort.readLightTimers()
+        #expect(t.requests.first?.path == "/api/admin/lights/timers")
+        #expect(t.requests.first?.headers["Cookie"] == "essensys_lan_session=abc")
+    }
+
+    @Test func light_timer_out_of_range_reply_is_unknown_not_zero() async {
+        let t = TestBackend(token: "jwt")
+        t.enqueue(200, #"{"timers":[{"id":"dressing","key":521,"minutes":300},{"id":"wc1","key":555}]}"#)
+        guard case let .success(timers) = await t.container.comfort.readLightTimers() else { Issue.record("succès attendu"); return }
+        #expect(timers.count == 6)
+        #expect(timers[0].minutes == nil)
+        #expect(timers[1].minutes == nil)
+    }
+
+    @Test func light_timer_is_written_with_put_on_the_admin_cloud_path() async {
+        let t = TestBackend(token: "jwt")
+        t.enqueue(200, #"{"id":"wc2","minutes":30,"status":"queued"}"#)
+        #expect(await t.container.comfort.setLightTimer(id: "wc2", minutes: 30) == .success(.sent))
+        #expect(t.requests.first?.method == "PUT")
+        #expect(t.requests.first?.path == "/api/portal/admin/lights/timers/wc2")
+        #expect(t.requests.first?.body == #"{"minutes":30}"#)
+    }
+
+    @Test func light_timer_is_written_in_lan_with_dry_run_in_test_mode() async {
+        let t = TestBackend(mode: .lan, testMode: true)
+        t.store.update { $0.lanCookie = "abc" }
+        t.enqueue(200, #"{"id":"dressing","minutes":0,"status":"dry_run"}"#)
+        #expect(await t.container.comfort.setLightTimer(id: "dressing", minutes: 0) == .success(.dryRunOK))
+        #expect(t.requests.first?.path == "/api/admin/lights/timers/dressing")
+        #expect(t.requests.first?.headers["X-Essensys-Test-Mode"] == "dry-run")
+        #expect(t.requests.first?.body == #"{"minutes":0}"#)
+    }
+
+    @Test func light_timer_invalid_values_never_reach_the_network() async {
+        let t = TestBackend(token: "jwt")
+        for minutes in [-1, 256, 300] {
+            guard case .failure(.invalidRequest) = await t.container.comfort.setLightTimer(id: "dressing", minutes: minutes) else {
+                Issue.record("refus attendu pour \(minutes)"); continue
+            }
+        }
+        guard case .failure(.invalidRequest) = await t.container.comfort.setLightTimer(id: "salon1", minutes: 10) else {
+            Issue.record("refus attendu"); return
+        }
+        #expect(t.requests.isEmpty)
+    }
+
+    @Test func light_timer_forbidden_for_a_simple_user_keeps_the_session() async {
+        let t = TestBackend(token: "jwt")
+        t.enqueue(403, #"{"error":"forbidden"}"#)
+        guard case let .failure(error) = await t.container.comfort.setLightTimer(id: "dressing", minutes: 15) else { Issue.record("échec attendu"); return }
+        guard case .forbidden = error else { Issue.record("403 attendu : \(error)"); return }
+        #expect(t.store.state.token == "jwt")
+    }
 }

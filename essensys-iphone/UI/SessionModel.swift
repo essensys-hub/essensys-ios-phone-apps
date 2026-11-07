@@ -54,7 +54,7 @@ final class SessionModel {
     func setMode(_ mode: ConnectionMode) {
         guard mode != session.mode else { return }
         store.update {
-            $0.mode = mode; $0.token = nil; $0.lanCookie = nil; $0.passwordChangeRequired = false
+            $0.mode = mode; $0.token = nil; $0.lanCookie = nil; $0.passwordChangeRequired = false; $0.isAdmin = false
             $0.rememberToken = nil; $0.rememberExpiresAt = nil; $0.sessionEnded = false
         }
         container.appLog.event("session", "Mode \(mode.rawValue)")

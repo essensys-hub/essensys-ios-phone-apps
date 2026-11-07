@@ -41,6 +41,7 @@ final class AuthRepository: Sendable {
                 let remembered = until != nil ? login.rememberToken.flatMap { $0.isEmpty ? nil : $0 } : nil
                 store.update {
                     $0.token = login.token; $0.lanCookie = nil; $0.passwordChangeRequired = mustChange; $0.sessionEnded = false
+                    $0.isAdmin = AdminRole.isAdmin(role: login.user?.role, mode: .cloud)
                     $0.rememberToken = remembered
                     $0.rememberExpiresAt = remembered == nil ? nil : until
                 }
@@ -49,11 +50,12 @@ final class AuthRepository: Sendable {
                 guard let cookie = APIClient.extractLanCookie(response.setCookie) else {
                     return .failed("La gateway n'a pas ouvert de session.")
                 }
-                let until = rememberMe
-                    ? (try? JSONDecoder().decode(LanLoginResponse.self, from: response.body)).flatMap { RememberDate.parse($0.rememberExpiresAt) }
-                    : nil
+                let decoded = try? JSONDecoder().decode(LanLoginResponse.self, from: response.body)
+                let until = rememberMe ? decoded.flatMap { RememberDate.parse($0.rememberExpiresAt) } : nil
+                let admin = AdminRole.isAdmin(role: decoded?.user?.role, mode: .lan)
                 store.update {
                     $0.lanCookie = cookie; $0.token = nil; $0.passwordChangeRequired = false; $0.sessionEnded = false
+                    $0.isAdmin = admin
                     $0.rememberToken = nil; $0.rememberExpiresAt = until
                 }
                 return .loggedIn

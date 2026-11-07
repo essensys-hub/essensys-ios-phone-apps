@@ -199,6 +199,84 @@ struct AuthRepositoryTests {
         #expect(t.store.state.rememberToken == nil)
         #expect(t.store.state.rememberExpiresAt == nil)
     }
+
+    // MARK: Rôle administrateur (lumieres-temporisees-2026-11-003, tâche 7.1)
+
+    @Test func admin_rule_per_mode() {
+        #expect(AdminRole.isAdmin(role: "admin_local", mode: .cloud))
+        #expect(AdminRole.isAdmin(role: "admin_global", mode: .cloud))
+        #expect(!AdminRole.isAdmin(role: "guest_local", mode: .cloud))
+        #expect(!AdminRole.isAdmin(role: "user", mode: .cloud))
+        #expect(!AdminRole.isAdmin(role: "lan_admin", mode: .cloud))
+        #expect(!AdminRole.isAdmin(role: nil, mode: .cloud))
+        #expect(AdminRole.isAdmin(role: "lan_admin", mode: .lan))
+        #expect(!AdminRole.isAdmin(role: "lan_user", mode: .lan))
+        #expect(!AdminRole.isAdmin(role: "lan_guest", mode: .lan))
+        #expect(!AdminRole.isAdmin(role: "admin_local", mode: .lan))
+    }
+
+    @Test func cloud_login_decodes_the_role() async {
+        for (role, expected) in [("admin_local", true), ("admin_global", true), ("guest_local", false), ("user", false)] {
+            let t = TestBackend()
+            t.enqueue(200, #"{"token":"jwt","user":{"id":1,"role":"\#(role)"},"password_change_required":false}"#)
+            #expect(await t.container.auth.login(email: "a@b.fr", password: "x") == .loggedIn)
+            #expect(t.store.state.isAdmin == expected, "\(role)")
+        }
+    }
+
+    @Test func cloud_login_without_role_is_not_admin() async {
+        let t = TestBackend()
+        t.enqueue(200, #"{"token":"jwt","password_change_required":false}"#)
+        _ = await t.container.auth.login(email: "a@b.fr", password: "x")
+        #expect(!t.store.state.isAdmin)
+    }
+
+    @Test func lan_login_decodes_the_role() async {
+        for (role, expected) in [("lan_admin", true), ("lan_user", false)] {
+            let t = TestBackend(mode: .lan)
+            t.enqueue(200, #"{"user":{"id":1,"role":"\#(role)"}}"#, headers: [
+                "Content-Type": "application/json",
+                "Set-Cookie": "essensys_lan_session=abc123; Path=/; HttpOnly; Secure; Max-Age=604800",
+            ])
+            #expect(await t.container.auth.login(email: "a@b.local", password: "x") == .loggedIn)
+            #expect(t.store.state.isAdmin == expected, "\(role)")
+        }
+    }
+
+    @Test func role_is_read_again_from_the_session_and_cleared_on_logout() async {
+        let t = TestBackend(token: "jwt")
+        #expect(!t.store.state.isAdmin) // session restaurée : non admin avant relecture
+        t.enqueue(200, #"{"user":{"id":1,"role":"admin_local"},"portal_access":true}"#)
+        _ = await t.container.portal.session()
+        #expect(t.store.state.isAdmin)
+        t.enqueue(200, #"{"user":{"id":1,"role":"guest_local"},"portal_access":true}"#)
+        _ = await t.container.portal.session()
+        #expect(!t.store.state.isAdmin) // rôle retiré côté serveur
+        t.enqueue(200, #"{"user":{"id":1,"role":"admin_global"},"portal_access":true}"#)
+        _ = await t.container.portal.session()
+        t.enqueue(200, "")
+        await t.container.auth.logout()
+        #expect(!t.store.state.isAdmin)
+    }
+
+    @Test func lan_role_is_read_again_from_user_me() async {
+        let t = TestBackend(mode: .lan)
+        t.store.update { $0.lanCookie = "abc" }
+        t.enqueue(200, #"{"user":{"id":1,"role":"lan_admin"}}"#)
+        _ = await t.container.portal.lanSessionValid()
+        #expect(t.store.state.isAdmin)
+        t.enqueue(200, #"{"user":{"id":1,"role":"lan_user"}}"#)
+        _ = await t.container.portal.lanSessionValid()
+        #expect(!t.store.state.isAdmin)
+    }
+
+    @Test func session_without_role_keeps_the_current_value() async {
+        let t = TestBackend(token: "jwt")
+        t.store.update { $0.isAdmin = true }
+        t.enqueue(200, #"{"user":{"id":1},"portal_access":true}"#)
+        _ = await t.container.portal.session()
+        #expect(t.store.state.isAdmin)
+    }
 }
 
 /// Valeur partagée entre un test et le gestionnaire du backend simulé (qui tourne sur un autre fil).

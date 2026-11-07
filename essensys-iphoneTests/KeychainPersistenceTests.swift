@@ -92,5 +92,18 @@ import Testing
         #expect(cleared.lanCookie == nil)
         #expect(cleared.rememberExpiresAt == nil)
     }
-}
 
+    // lumieres-temporisees-2026-11-003 : le rôle n'est jamais persisté, une session restaurée n'est pas admin.
+    @Test func admin_flag_is_never_persisted() {
+        let persistence = KeychainPersistence(service: "essensys.tests.\(UUID().uuidString)", suiteName: suite)
+        let store = SessionStore(persistence: persistence)
+        store.update { $0.token = "jwt-admin-value"; $0.isAdmin = true }
+        #expect(store.state.isAdmin)
+        let reopened = SessionStore(persistence: persistence)
+        #expect(reopened.state.token == "jwt-admin-value")
+        #expect(!reopened.state.isAdmin)
+        let dump = UserDefaults(suiteName: suite)!.dictionaryRepresentation().description.lowercased()
+        #expect(!dump.contains("admin"))
+        reopened.clearSession()
+    }
+}

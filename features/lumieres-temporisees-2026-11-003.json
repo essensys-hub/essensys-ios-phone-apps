@@ -1,0 +1,107 @@
+{
+  "$schema": "./schema/feature.schema.json",
+  "id": "lumieres-temporisees-2026-11-003",
+  "title": "Régler les temporisations des six lumières depuis l'app iPhone",
+  "status": "proposed",
+  "owner": "nrineau",
+  "github": {
+    "issue": "essensys-hub/essensys-feature-lifecycle#45",
+    "project_item": null
+  },
+  "git": {
+    "branch": "feat/lumieres-temporisees-2026-11-003",
+    "pr_url": null
+  },
+  "openspec": {
+    "change_id": "lumieres-temporisees-2026-11-003",
+    "path": "openspec/changes/lumieres-temporisees-2026-11-003",
+    "proposal": "openspec/changes/lumieres-temporisees-2026-11-003/proposal.md",
+    "design": "../essensys-feature-lifecycle/openspec/changes/lumieres-temporisees-2026-11-003/design.md",
+    "tasks": "openspec/changes/lumieres-temporisees-2026-11-003/tasks.md",
+    "specs": [
+      "openspec/changes/lumieres-temporisees-2026-11-003/specs/light-timers-clients/spec.md"
+    ]
+  },
+  "implementation": {
+    "paths": [
+      "essensys-iphone/Data/Control/LightTimers.swift",
+      "essensys-iphone/Data/Control/ComfortRepository.swift",
+      "essensys-iphone/Data/HTTP/DTO.swift",
+      "essensys-iphone/Data/Auth/AuthRepository.swift",
+      "essensys-iphone/Data/Session/SessionStore.swift",
+      "essensys-iphone/Data/Session/PortalRepository.swift",
+      "essensys-iphone/Data/AppContainer.swift",
+      "essensys-iphone/Debug/UITestBackend.swift",
+      "essensys-iphone/UI/FeatureModels.swift",
+      "essensys-iphone/UI/EssensysRoot.swift",
+      "essensys-iphone/UI/Screens/LightTimersScreen.swift",
+      "essensys-iphone/UI/Screens/ControlScreens.swift",
+      "essensys-iphone/UI/Screens/MainScreens.swift"
+    ],
+    "primary_surface": "ios"
+  },
+  "userguide": {
+    "pages": [
+      "README.md"
+    ],
+    "language": "fr",
+    "i18n_keys": [],
+    "screenshots": []
+  },
+  "tests": {
+    "playwright": [],
+    "junit": [
+      "essensys-iphoneTests/IndexTableTests.swift",
+      "essensys-iphoneTests/ComfortRepositoryTests.swift",
+      "essensys-iphoneTests/AuthRepositoryTests.swift",
+      "essensys-iphoneTests/KeychainPersistenceTests.swift",
+      "essensys-iphoneTests/LightTimersModelTests.swift",
+      "essensys-iphoneUITests/LightTimersUITests.swift"
+    ],
+    "coverage_must_test": [
+      "light timer keys and range NR ios 24",
+      "light timer display keeps free values as is",
+      "light timers are read in cloud with unknown kept unknown",
+      "light timers are read on admin path in lan",
+      "light timer is written with put on the admin cloud path",
+      "light timer invalid values never reach the network",
+      "light timer forbidden for a simple user keeps the session",
+      "admin rule per mode",
+      "cloud login decodes the role",
+      "lan login decodes the role",
+      "admin flag is never persisted",
+      "default recheck pauses are 5 10 and 20 seconds",
+      "load then send rereads until the armoire confirms"
+    ],
+    "smoke_tags": [
+      "@nr"
+    ]
+  },
+  "release": {
+    "changelog_entry": "iPhone : réglage des temporisations des six lumières, réservé à l'administrateur (#43).",
+    "target_tag": null,
+    "surfaces": [
+      "ios"
+    ],
+    "paths": []
+  },
+  "security": {
+    "sca_tool": "dependabot+trivy",
+    "dependabot_alerts_url": "https://github.com/essensys-hub/essensys-ios-phone-apps/security/dependabot",
+    "last_scan_at": null,
+    "cve_findings": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "secret_scan": {
+      "status": "warning",
+      "tool": "gitleaks",
+      "last_scan_at": null
+    },
+    "muted_findings": [],
+    "threat_model_url": null,
+    "owner_security": "rhinosys"
+  }
+}
