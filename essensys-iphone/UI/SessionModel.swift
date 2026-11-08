@@ -191,6 +191,8 @@ final class SessionModel {
     }
 
     func logout() async {
+        // L'appareil quitte le cloud avant que le jeton de session ne disparaisse (sonnette-plages-push-2026-11-008).
+        if session.mode == .cloud { await container.push.deleteRegisteredDevice() }
         await container.auth.logout()
         container.appLog.event("session", "Déconnexion")
         link = nil

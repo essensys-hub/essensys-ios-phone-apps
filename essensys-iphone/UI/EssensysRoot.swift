@@ -17,6 +17,7 @@ struct EssensysRoot: View {
     @State private var lightLayout: ObjectLayoutModel
     @State private var shutterLayout: ObjectLayoutModel
     @State private var support: SupportModel
+    @State private var doorbell: DoorbellModel
     @State private var showSupport = false
 
     init(container: AppContainer) {
@@ -31,6 +32,7 @@ struct EssensysRoot: View {
         _lightLayout = State(initialValue: ObjectLayoutModel(kind: .lights, comfort: container.comfort))
         _shutterLayout = State(initialValue: ObjectLayoutModel(kind: .shutters, comfort: container.comfort))
         _support = State(initialValue: SupportModel(container: container))
+        _doorbell = State(initialValue: DoorbellModel(push: container.push, system: container.pushSystem))
     }
 
     var body: some View {
@@ -50,7 +52,7 @@ struct EssensysRoot: View {
             Group {
                 switch session.link {
                 case nil: ScreenColumn { ProgressView("Chargement…") }
-                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort, lightTimers: lightTimers, lightNames: lightNames, shutterNames: shutterNames, lightLayout: lightLayout, shutterLayout: shutterLayout) { showSupport = true }
+                case .linked: MainTabs(session: session, control: control, heating: heating, scenarios: scenarios, comfort: comfort, lightTimers: lightTimers, lightNames: lightNames, shutterNames: shutterNames, lightLayout: lightLayout, shutterLayout: shutterLayout, doorbell: doorbell) { showSupport = true }
                 case let state?: LinkScreen(model: session, state: state)
                 }
             }
@@ -70,6 +72,7 @@ private struct MainTabs: View {
     let shutterNames: ShutterNamesModel
     let lightLayout: ObjectLayoutModel
     let shutterLayout: ObjectLayoutModel
+    let doorbell: DoorbellModel
     let openSupport: () -> Void
     @State private var destination: Destination = .home
     @State private var homePath: [Feature] = []
@@ -108,11 +111,13 @@ private struct MainTabs: View {
                     .tabItem { Label(Destination.shutters.label, systemImage: Destination.shutters.icon) }
                 HeatingScreen(model: heating, enabled: enabled, lanMode: lan).tag(Destination.heating)
                     .tabItem { Label(Destination.heating.label, systemImage: Destination.heating.icon) }
-                SettingsScreen(model: session, openSupport: openSupport).tag(Destination.settings)
+                SettingsScreen(model: session, doorbell: doorbell, openSupport: openSupport).tag(Destination.settings)
                     .tabItem { Label(Destination.settings.label, systemImage: Destination.settings.icon) }
             }
         }
         .background(colors.background)
+        // Toucher sur la notification de la sonnette : retour à l'écran d'accueil.
+        .onReceive(NotificationCenter.default.publisher(for: .doorbellOpened)) { _ in destination = .home; homePath = [] }
         // Noms des lumières : relus à chaque connexion et changement de mode ; repli sur les noms d'origine.
         .task(id: "names-\(session.session.mode)") {
             lightNames.reset()
