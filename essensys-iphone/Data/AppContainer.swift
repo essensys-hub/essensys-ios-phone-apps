@@ -12,6 +12,8 @@ final class AppContainer: Sendable {
     let auth: AuthRepository
     let control: ControlRepository
     let portal: PortalRepository
+    let push: PushRepository
+    let pushSystem: PushSystem
     let heating: HeatingRepository
     let scenarios: ScenarioRepository
     let comfort: ComfortRepository
@@ -22,12 +24,15 @@ final class AppContainer: Sendable {
     /// - Parameters syncPoll, syncTimeout : périodes de synchronisation du chauffage (courtes en test).
     /// - Parameter now: horloge de la couche réseau (fin de session mémorisée), contrôlée dans les tests.
     /// - Parameters appLog, device, supportDirectory : bouton Support (app-support-bundle-2026-10-013) ;
+    /// - Parameters pushSystem, pushDevices : notification de la sonnette (sonnette-plages-push-2026-11-008) ; faux fixe
+    ///   et mémoire par défaut (tests), système réel en production.
     ///   journal en mémoire et appareil fixe par défaut (tests).
     init(store: SessionStore, guardNoArmoire: Bool, protocolClasses: [AnyClass]? = nil,
          now: @escaping @Sendable () -> Date = { Date() },
          syncPoll: Duration = .seconds(3), syncTimeout: Duration = .seconds(90),
          appLog: AppLog = AppLog(), device: DeviceProbe = StaticDeviceProbe(),
          supportDirectory: URL = SupportBundle.defaultDirectory(),
+         pushSystem: PushSystem = StaticPushSystem(), pushDevices: PushDeviceStore = InMemoryPushDeviceStore(),
          resolve: @escaping @Sendable (String) -> Int? = SupportDiagnostics.getaddrinfoCount) {
         self.store = store
         self.appLog = appLog
@@ -35,6 +40,8 @@ final class AppContainer: Sendable {
         auth = AuthRepository(api: api, store: store)
         control = ControlRepository(api: api, store: store, auth: auth)
         portal = PortalRepository(api: api, auth: auth, store: store)
+        push = PushRepository(api: api, auth: auth, devices: pushDevices)
+        self.pushSystem = pushSystem
         heating = HeatingRepository(api: api, store: store, auth: auth, control: control, syncPoll: syncPoll, syncTimeout: syncTimeout)
         scenarios = ScenarioRepository(api: api, store: store, auth: auth)
         comfort = ComfortRepository(api: api, store: store, auth: auth, control: control)
