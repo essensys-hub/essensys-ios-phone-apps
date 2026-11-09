@@ -8,7 +8,10 @@
 //  UITEST_LIGHT_NAMES (« id=Nom;id=Nom » : noms personnalisés au départ), UITEST_NAMES_READ_FAIL=1 (lecture des noms en 503),
 //  UITEST_NAMES_WRITE=400|403|503 (écriture refusée avec ce code), UITEST_SHUTTER_NAMES (« id=Nom;id=Nom », volets),
 //  UITEST_LIGHT_LAYOUT / UITEST_SHUTTER_LAYOUT (« order=a,b;disabled=c,d » : disposition au départ),
-//  UITEST_LAYOUT_READ=404|503 (lecture des dispositions refusée), UITEST_LAYOUT_WRITE=400|403|503 (écriture refusée).
+//  UITEST_LAYOUT_READ=404|503 (lecture des dispositions refusée), UITEST_LAYOUT_WRITE=400|403|503 (écriture refusée),
+//  UITEST_GATEWAY_STATE=none|offline|online|absent (gateway_state de la session ; par défaut selon UITEST_GATEWAY et UITEST_ONLINE),
+//  UITEST_PUSH_AUTH=granted|denied|ask-grant|ask-deny (autorisation de notification du système simulé),
+//  UITEST_PUSH_NOTIFY=1 (appareil déjà enregistré avec doorbell_notify=true).
 //
 
 #if DEBUG
@@ -20,6 +23,18 @@ enum UITestBackend {
     private static let env = ProcessInfo.processInfo.environment
 
     static var isEnabled: Bool { env["UITEST_BACKEND"] == "1" }
+
+    /// Système de notification simulé : aucune demande réelle au système, aucun jeton APNs réel.
+    static var pushSystem: PushSystem {
+        switch env["UITEST_PUSH_AUTH"] {
+        case "denied": StaticPushSystem(authorization: .denied)
+        case "ask-grant": StaticPushSystem(authorization: .notDetermined, grantOnRequest: true)
+        case "ask-deny": StaticPushSystem(authorization: .notDetermined, grantOnRequest: false)
+        default: StaticPushSystem(authorization: .granted)
+        }
+    }
+    /// Appareil enregistré (id, doorbell_notify) dans le cloud simulé.
+    nonisolated(unsafe) private static var pushDevice: (id: Int, notify: Bool)? = env["UITEST_PUSH_NOTIFY"] == "1" ? (7, true) : nil
 
     static func initialState() -> SessionState {
         var state = SessionState()
@@ -127,6 +142,19 @@ enum UITestBackend {
             return (200, sessionJSON(gatewayOnline: online))
         case "/api/user/me":
             return (200, #"{"user":{"id":1,"role":"\#(role)"}}"#)
+        case "/api/portal/push/devices":
+            guard method == "PUT", let data = body.data(using: .utf8),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  object["platform"] as? String == "ios", let token = object["token"] as? String, !token.isEmpty else {
+                return (400, #"{"error":"invalid_token"}"#)
+            }
+            let notify = object["doorbell_notify"] as? Bool ?? false
+            lock.withLock { pushDevice = (7, notify); mutations.append("PUT \(path) notify=\(notify)") }
+            return (200, #"{"id":7,"platform":"ios","doorbell_notify":\#(notify)}"#)
+        case "/api/portal/doorbell/preferences":
+            let device = lock.withLock { pushDevice }
+            let devices = device.map { #"{"id":\#($0.id),"platform":"ios","doorbell_notify":\#($0.notify)}"# } ?? ""
+            return (200, #"{"available":\#(gatewayState != "none"),"devices":[\#(devices)]}"#)
         case "/api/portal/health", "/health":
             return (200, #"{"status":"ok"}"#)
         case "/api/portal/history/latest":
@@ -167,6 +195,11 @@ enum UITestBackend {
         case "/api/portal/admin/shutters/layout", "/api/admin/shutters/layout":
             return setLayout("shutters", path: path, headers: headers, body: body)
         default:
+            if path.hasPrefix("/api/portal/push/devices/"), method == "DELETE" {
+                let known = lock.withLock { () -> Bool in defer { pushDevice = nil }; return pushDevice != nil }
+                lock.withLock { mutations.append("DELETE \(path)") }
+                return known ? (204, "") : (404, #"{"error":"not_found"}"#)
+            }
             if path.hasPrefix("/api/portal/admin/shutters/names/") || path.hasPrefix("/api/admin/shutters/names/") {
                 return setShutterName(path: path, headers: headers, body: body)
             }
@@ -196,7 +229,13 @@ enum UITestBackend {
         case "old": armoire = armoireJSON(online: false)
         default: armoire = armoireJSON(online: hasGateway && gatewayOnline)
         }
-        return #"{"user":{"id":1,"email":"demo@essensys.fr","first_name":"Camille","last_name":"Démo","role":"\#(role)"},"portal_access":true\#(gateway)\#(armoire)}"#
+        let state = gatewayState == "absent" ? "" : #","gateway_state":"\#(gatewayState)""#
+        return #"{"user":{"id":1,"email":"demo@essensys.fr","first_name":"Camille","last_name":"Démo","role":"\#(role)"},"portal_access":true\#(gateway)\#(armoire)\#(state)}"#
+    }
+
+    /// `gateway_state` simulé : sans gateway `none`, sinon `online`/`offline` selon UITEST_ONLINE ; UITEST_GATEWAY_STATE l'impose.
+    private static var gatewayState: String {
+        env["UITEST_GATEWAY_STATE"] ?? (env["UITEST_GATEWAY"] == "none" ? "none" : env["UITEST_ONLINE"] == "0" ? "offline" : "online")
     }
 
     private static func armoireJSON(online: Bool) -> String {

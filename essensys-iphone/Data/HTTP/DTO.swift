@@ -155,6 +155,14 @@ struct PortalSession: Decodable, Equatable, Sendable {
     let user: CloudUser?
     let gateway: GatewayInfo?
     let armoire: ArmoireInfo?
+    /// `none` | `offline` | `online` (sonnette-plages-push-2026-11-008) ; absent d'un ancien cloud.
+    let gatewayState: String?
+    enum CodingKeys: String, CodingKey { case user, gateway, armoire, gatewayState = "gateway_state" }
+
+    /// Présence de la gateway ; nil quand le cloud ne renvoie pas le champ.
+    var gatewayPresence: GatewayPresence? { GatewayPresence(gatewayState) }
+    /// Option « Sonnette » proposée : une gateway est liée (`gateway_state != "none"`) ; sans le champ, le cloud ne sait pas enregistrer d'appareil.
+    var doorbellAvailable: Bool { gatewayPresence.map { $0 != .none } ?? false }
 
     /// Armoire en ligne : la gateway OU l'armoire elle-même a été vue depuis 2 min au plus.
     /// Une installation sans gateway n'a pas de bloc `gateway` : seul `armoire.online` compte

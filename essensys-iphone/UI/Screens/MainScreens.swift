@@ -130,6 +130,7 @@ struct HomeScreen: View {
 
 struct SettingsScreen: View {
     @Bindable var model: SessionModel
+    var doorbell: DoorbellModel?
     var openSupport: () -> Void = {}
     @Environment(\.essensys) private var colors
 
@@ -137,6 +138,9 @@ struct SettingsScreen: View {
         ScreenColumn {
             EssensysCard(title: "Support", description: "Un problème ? L'appli teste votre connexion et prépare un diagnostic à envoyer par email.") {
                 ActionButton(label: "Contacter le support", action: openSupport).accessibilityIdentifier("open-support")
+            }
+            if model.session.mode == .cloud, let doorbell, let presence = model.account?.gatewayPresence, presence != .none {
+                DoorbellCard(model: doorbell, presence: presence)
             }
             EssensysCard(title: "Connexion") {
                 Text(model.session.mode == .cloud ? "Cloud — mon.essensys.fr"
@@ -190,4 +194,25 @@ func formatLastSeen(_ raw: String) -> String {
     let formatter = DateFormatter()
     formatter.dateFormat = "dd/MM/yyyy HH:mm"
     return formatter.string(from: date)
+}
+
+/// Option « Sonnette » : visible seulement si une gateway est liée (sonnette-plages-push-2026-11-008).
+struct DoorbellCard: View {
+    @Bindable var model: DoorbellModel
+    let presence: GatewayPresence
+    @Environment(\.essensys) private var colors
+
+    var body: some View {
+        EssensysCard(title: "Sonnette", description: "La sonnette doit être activée sur la gateway pour que la notification arrive.") {
+            Text(presence.label).font(.caption).foregroundStyle(presence == .online ? colors.success : colors.textMuted)
+                .accessibilityIdentifier("doorbell-gateway")
+            Toggle("Me prévenir quand quelqu'un sonne", isOn: Binding(
+                get: { model.notifyEnabled }, set: { value in Task { await model.setNotify(value) } }))
+                .foregroundStyle(colors.text).disabled(model.busy).accessibilityIdentifier("doorbell-toggle")
+            if let message = model.message {
+                Text(message).font(.caption).foregroundStyle(colors.danger).accessibilityIdentifier("doorbell-message")
+            }
+        }
+        .task { await model.load() }
+    }
 }

@@ -10,13 +10,15 @@ import SwiftUI
 @main
 struct EssensysApp: App {
     private let container: AppContainer
+    @UIApplicationDelegateAdaptor(EssensysAppDelegate.self) private var appDelegate
 
     init() {
         #if DEBUG
         if UITestBackend.isEnabled {
             container = AppContainer(
                 store: SessionStore(persistence: InMemoryPersistence(initial: UITestBackend.initialState())),
-                guardNoArmoire: true, protocolClasses: [UITestURLProtocol.self], resolve: { _ in 1 })
+                guardNoArmoire: true, protocolClasses: [UITestURLProtocol.self],
+                pushSystem: UITestBackend.pushSystem, resolve: { _ in 1 })
             return
         }
         #endif
@@ -24,7 +26,8 @@ struct EssensysApp: App {
         // La v1 stockait le mot de passe en clair dans UserDefaults : purge au premier lancement.
         persistence.purgeLegacy()
         container = AppContainer(store: SessionStore(persistence: persistence), guardNoArmoire: false,
-                                 appLog: AppLog(file: AppLog.defaultFile()), device: IPhoneDeviceProbe())
+                                 appLog: AppLog(file: AppLog.defaultFile()), device: IPhoneDeviceProbe(),
+                                 pushSystem: SystemPushSystem(), pushDevices: UserDefaultsPushDeviceStore())
         let info = Bundle.main.infoDictionary
         container.appLog.event("app", "Démarrage \(info?["CFBundleShortVersionString"] as? String ?? "?") (\(info?["CFBundleVersion"] as? String ?? "?"))")
     }
